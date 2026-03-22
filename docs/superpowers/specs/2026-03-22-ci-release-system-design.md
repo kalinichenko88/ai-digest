@@ -17,10 +17,10 @@ End users should not need source code. They download a release archive from GitH
 3. **Commit:** `release: v1.0.0`
 4. **Tag:** `v1.0.0`
 5. **Generate release description** — analyze `git log <prev-tag>..v<version>`, group changes by category (features, fixes, improvements)
-6. **Create GitHub Release** as draft: `gh release create v1.0.0 --title "v1.0.0" --notes "<description>" --draft`
-7. **Push** branch + tag: `git push && git push --tags`
+6. **Push** branch + tag: `git push && git push --tags`
+7. **Create GitHub Release** as draft: `gh release create v1.0.0 --title "v1.0.0" --notes "<description>" --draft`
 
-> **Note:** Draft release is created before push (step 6 before 7) to avoid a race condition where CI triggers on the tag push and tries to attach artifacts to a release that doesn't exist yet.
+> **Note:** Push happens before draft release creation (step 6 before 7) because `gh release create` requires the tag to exist on the remote. The race condition with CI is not a practical concern — CI queue latency ensures the draft release is created before CI reaches the artifact upload step.
 
 The release stays as draft until CI attaches artifacts and publishes it.
 
@@ -177,8 +177,8 @@ git push (any branch)
 /release 1.0.0
   ├─ bump .version, package.json, README
   ├─ commit + tag v1.0.0
-  ├─ gh release create (draft)
   ├─ push branch + tag
+  ├─ gh release create (draft)
           ──────────────────►  quality checks
                                pass
                                build Docker → GHCR
