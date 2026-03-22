@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": ["Edit(config/sources.yml)"]
+  },
+  "mcpServers": {
+    "ai-digest-mcp": {
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "--env-file",
+        ".env",
+        "-v",
+        "./config:/app/config",
+        "-v",
+        "./logs:/app/logs",
+        "ghcr.io/kalinichenko88/ai-digest"
+      ]
+    }
+  }
+}
