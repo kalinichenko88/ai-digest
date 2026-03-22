@@ -79,7 +79,11 @@ This personalizes the "Relevant to Your Projects" section.
 ./scripts/run.sh
 ```
 
-### 7. Set up Apple Shortcuts (optional)
+### 7. Scheduling
+
+ai-digest does not include a built-in scheduler — it runs once and exits. To get daily digests, set up scheduling yourself.
+
+**macOS — Shortcuts Automation (recommended):**
 
 1. Open Shortcuts app
 2. Create new Automation → Time of Day (e.g. 8:00 AM)
@@ -87,6 +91,13 @@ This personalizes the "Relevant to Your Projects" section.
 4. Set shell to `/bin/bash`
 5. Paste: `/path/to/ai-digest/scripts/run.sh`
 6. Done
+
+**Linux / macOS — cron:**
+
+```bash
+# Run every day at 8:00 AM
+0 8 * * * /path/to/ai-digest/scripts/run.sh
+```
 
 ## GitHub Token (optional)
 
