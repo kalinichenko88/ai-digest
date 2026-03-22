@@ -94,14 +94,21 @@ ai-digest does not include a built-in scheduler — it runs once and exits. To g
 2. Create new Automation → Time of Day (e.g. 8:00 AM)
 3. Add "Run Shell Script" action
 4. Set shell to `/bin/bash`
-5. Paste: `/path/to/ai-digest/scripts/run.sh`
-6. Done
+5. Paste:
+
+```bash
+export PATH="$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"
+cd /path/to/ai-digest
+./run.sh
+```
+
+> **Note:** Apple Shortcuts runs with a minimal `PATH`. The `export PATH` line adds Homebrew (`/opt/homebrew/bin`) and Claude Code (`$HOME/.local/bin`) so that `claude` and `docker` are found.
 
 **Linux / macOS — cron:**
 
 ```bash
 # Run every day at 8:00 AM
-0 8 * * * /path/to/ai-digest/scripts/run.sh
+0 8 * * * /path/to/ai-digest/run.sh
 ```
 
 ## GitHub Token (optional)
