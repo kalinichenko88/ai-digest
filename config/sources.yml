@@ -1,0 +1,49 @@
+rss:
+  - name: hackernews
+    url: https://hnrss.org/frontpage?points=100
+    limit: 30
+  - name: lobsters
+    url: https://lobste.rs/rss
+    limit: 20
+  - name: claude-code-blog
+    url: https://rss.app/feeds/Ec1x9ZalpmNXMvYj.xml
+    limit: 10
+  - name: react-blog
+    url: https://react.dev/rss.xml
+    limit: 10
+  - name: chrome-blog
+    url: https://developer.chrome.com/blog/feed.xml
+    limit: 10
+  - name: storybook-blog
+    url: https://storybook.js.org/blog/rss/
+    limit: 10
+  - name: devto
+    url: https://dev.to/feed
+    limit: 20
+  - name: github-trending-typescript
+    url: https://mshibanami.github.io/GitHubTrendingRSS/daily/typescript.xml
+    limit: 15
+  - name: github-trending-python
+    url: https://mshibanami.github.io/GitHubTrendingRSS/daily/python.xml
+    limit: 15
+  - name: typescript-blog
+    url: https://devblogs.microsoft.com/typescript/feed/
+    limit: 10
+  - name: tkdodo-blog
+    url: https://tkdodo.eu/blog/rss.xml
+    limit: 10
+  - name: kentcdodds-blog
+    url: https://kentcdodds.com/blog/rss.xml
+    limit: 10
+  - name: simonwillison-blog
+    url: https://simonwillison.net/atom/everything/
+    limit: 15
+
+github_releases:
+  repos:
+    - anthropics/claude-code
+    - vercel/next.js
+    - drizzle-team/drizzle-orm
+    - storybookjs/storybook
+    - vitejs/vite
+    - tailwindlabs/tailwindcss
