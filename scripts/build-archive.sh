@@ -26,6 +26,7 @@ cp scripts/install.sh "${TARGET}/install.sh"
 cp scripts/run.sh "${TARGET}/run.sh"
 cp .env.example "${TARGET}/.env.example"
 cp .version "${TARGET}/.version"
+cp CHANGELOG.md "${TARGET}/CHANGELOG.md"
 cp CLAUDE.md "${TARGET}/CLAUDE.md"
 cp README.md "${TARGET}/README.md"
 
