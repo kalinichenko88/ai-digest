@@ -71,6 +71,8 @@ output_path: ~/digests  # where to save digest files
 notification: true      # macOS notification when done
 ```
 
+> **Tip:** Set `output_path` to a folder inside your Obsidian vault (e.g. `~/Obsidian/Digests`) to read digests directly in Obsidian. If you have Obsidian Sync enabled, digests will be available on all your devices.
+
 ### 5. Set up personal context
 
 Edit `CLAUDE.md` with your stack, active projects, and interests.
