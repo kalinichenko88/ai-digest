@@ -29,9 +29,11 @@ if [ "${1:-}" = "update" ]; then
     GITHUB_TOKEN_VAL=$(grep -E '^GITHUB_TOKEN=' "${PROJECT_DIR}/.env" 2>/dev/null | cut -d '=' -f2- || true)
   fi
 
-  # Conditional curl to avoid quoting issues with auth header
+  # Fetch latest release: token from .env → gh auth → unauthenticated curl
   if [ -n "${GITHUB_TOKEN_VAL}" ]; then
     RELEASE_JSON=$(curl -s -H "Authorization: token ${GITHUB_TOKEN_VAL}" "https://api.github.com/repos/${REPO}/releases/latest")
+  elif command -v gh &>/dev/null && gh auth status &>/dev/null 2>&1; then
+    RELEASE_JSON=$(gh api "repos/${REPO}/releases/latest")
   else
     RELEASE_JSON=$(curl -s "https://api.github.com/repos/${REPO}/releases/latest")
   fi
@@ -62,6 +64,11 @@ if [ "${1:-}" = "update" ]; then
   tar -xzf "${UPDATE_TMPDIR}/release.tar.gz" -C "${UPDATE_TMPDIR}"
 
   NEW_DIR="${UPDATE_TMPDIR}/ai-digest"
+
+  if [ ! -d "${NEW_DIR}" ]; then
+    rm -rf "${UPDATE_TMPDIR}"
+    error "Unexpected archive layout: expected ai-digest/ directory"
+  fi
 
   # Write helper script and exec into it (safe self-update)
   cat > "${UPDATE_TMPDIR}/apply-update.sh" << 'HELPER'
@@ -101,9 +108,11 @@ if command -v yq &>/dev/null; then
   for key in $NEW_KEYS; do
     EXISTS=$(yq ".$key" "${TARGET_DIR}/config/delivery.yml" 2>/dev/null || true)
     if [ "$EXISTS" = "null" ] || [ -z "$EXISTS" ]; then
-      VALUE=$(yq ".$key" "${NEW_DIR}/config/delivery.yml")
-      yq -i ".$key = \"$VALUE\"" "${TARGET_DIR}/config/delivery.yml"
-      info "Added new config key: $key = $VALUE"
+      YQ_TMP=$(mktemp)
+      yq ".$key" "${NEW_DIR}/config/delivery.yml" > "$YQ_TMP"
+      yq -i ".$key = load(\"$YQ_TMP\")" "${TARGET_DIR}/config/delivery.yml"
+      rm -f "$YQ_TMP"
+      info "Added new config key: $key"
     fi
   done
 else
@@ -140,8 +149,9 @@ else
   warn "docker not found — skipping image pull"
 fi
 
-# Cleanup
-rm -rf "$(dirname "$0")"
+# Cleanup via trap (safe — avoids deleting script while running)
+SELF_TMPDIR="$(dirname "$0")"
+trap 'rm -rf "$SELF_TMPDIR"' EXIT
 
 echo ""
 echo -e "${GREEN}Updated to v${LATEST}!${NC}"
