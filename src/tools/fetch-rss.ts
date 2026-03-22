@@ -1,4 +1,5 @@
 import Parser from 'rss-parser';
+
 import { log } from '../logger.js';
 import type { DigestItem, RssSource, ToolResult } from '../types.js';
 

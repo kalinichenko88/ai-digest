@@ -45,21 +45,12 @@ Acceptance criteria:
 - Returns `DigestItem[]` where title = release name, description = release notes excerpt, url = release page URL
 - Handles rate limiting gracefully — skip + warning
 
-**US-1.3: Collect Twitter posts**
-As a user, I want the system to read recent posts from configured Twitter accounts using my existing browser session so that I get insights from people I follow without opening Twitter.
-
-Acceptance criteria:
-- MCP tool `fetch_twitter` accepts optional `since` (ISO 8601 date, default: last 24h) — reads accounts from `sources.yml`
-- Connects to existing Chrome browser via Playwright CDP
-- If not logged in or browser not available — returns empty array + warning, no crash
-- Returns `DigestItem[]` where title = tweet text (truncated), description = full tweet text, author = Twitter handle, url = tweet permalink
-
-**US-1.4: Parallel collection**
+**US-1.3: Parallel collection**
 As a user, I want data collection to happen in parallel so that the digest is ready faster.
 
 Acceptance criteria:
 - Claude launches sub-agents for independent source groups
-- RSS sources, GitHub releases, and Twitter are collected concurrently
+- RSS sources and GitHub releases are collected concurrently
 - Failure of one group does not block others
 
 ### Epic 2: Processing
@@ -84,7 +75,7 @@ Acceptance criteria:
 As a user, I want items grouped by category so that I can quickly scan the areas I care about.
 
 Acceptance criteria:
-- Categories: Relevant to Your Projects, AI/LLM, Frontend, DevTools/Releases, Twitter Review
+- Categories: Hot, Relevant to Your Projects, AI/LLM, Frontend, DevTools/Releases
 - Claude assigns categories based on content
 - "Relevant to Your Projects" is populated by matching items against CLAUDE.md context
 
@@ -131,10 +122,9 @@ Acceptance criteria:
 As a user, I want to configure my news sources in a YAML file so that I can customize what the digest covers.
 
 Acceptance criteria:
-- `config/sources.yml` with sections: rss, github_releases, twitter
+- `config/sources.yml` with sections: rss, github_releases
 - Each RSS source has name, url, limit
 - GitHub releases has a list of repos
-- Twitter has a list of accounts
 - Changes take effect on next run without any rebuild
 
 **US-4.2: Delivery configuration**
@@ -148,7 +138,7 @@ Acceptance criteria:
 As a user, I want to add a new source by running `/add-source` in Claude Code so that I don't have to edit YAML manually.
 
 Acceptance criteria:
-- Asks source type: rss, github_release, or twitter
+- Asks source type: rss or github_release
 - Collects required parameters interactively
 - Appends to the correct section in `sources.yml`
 - Confirms the addition
@@ -169,10 +159,10 @@ As a user, I want to trigger the digest from Apple Shortcuts so that it runs aut
 
 Acceptance criteria:
 - `scripts/run.sh` is the single entry point
-- Script runs `claude -p` with model and max-turns hardcoded (matching delivery.yml defaults)
-- Redirects Claude output to `logs/YYYY-MM-DD.log`
+- Script runs `claude -p` with model and max-turns hardcoded
+- Redirects Claude output to `logs/YYYY-MM-DD.md`
 - Exit code 0 on success, non-zero on failure
-- README contains Apple Shortcuts setup instructions and Chrome CDP prerequisites for Twitter
+- README contains Apple Shortcuts setup instructions
 
 **US-5.2: Manual run**
 As a user, I want to run the digest manually via `./scripts/run.sh` so that I can test or get an on-demand digest.
@@ -206,7 +196,8 @@ Acceptance criteria:
 As a user, I want clear setup instructions so that I can get the digest running on my machine.
 
 Acceptance criteria:
-- README covers: clone, `npm install`, build MCP server, configure `sources.yml` and `delivery.yml`, set up CLAUDE.md
-- README covers Apple Shortcuts setup with screenshots or step-by-step instructions
-- README covers Chrome CDP setup for Twitter (launching Chrome with `--remote-debugging-port=9222`)
+- README covers: clone, Docker setup, configure `sources.yml` and `delivery.yml`, set up CLAUDE.md
+- README covers Apple Shortcuts setup with step-by-step instructions
+- `install.sh` provides interactive first-time setup
+- `run.sh update` supports self-updating to latest release
 - `npm run build` compiles the MCP server without errors

@@ -1,8 +1,10 @@
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { dirname, join } from 'path';
-import { fileURLToPath } from 'url';
 import { z } from 'zod';
+
 import { loadSourcesConfig } from './config.js';
 import { log } from './logger.js';
 import { fetchGithubReleases } from './tools/fetch-github-releases.js';

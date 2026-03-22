@@ -1,6 +1,6 @@
-import { appendFileSync, mkdirSync } from 'fs';
-import { dirname, join } from 'path';
-import { fileURLToPath } from 'url';
+import { appendFileSync, mkdirSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const LOG_DIR = join(__dirname, '..', 'logs');
@@ -23,7 +23,7 @@ function timestamp(): string {
 }
 
 export function log(tag: string, message: string): void {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = timestamp().slice(0, 10);
   const logFile = join(LOG_DIR, `${today}.md`);
   const line = `[${timestamp()}] [${tag.padEnd(13)}] ${message}\n`;
   appendFileSync(logFile, line);

@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+
 import { fetchRss } from '../src/tools/fetch-rss.js';
 
 // Mock rss-parser

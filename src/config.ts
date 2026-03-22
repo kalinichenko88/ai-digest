@@ -1,5 +1,7 @@
-import { readFileSync } from 'fs';
+import { readFileSync } from 'node:fs';
+
 import { parse } from 'yaml';
+
 import { log } from './logger.js';
 import type { DeliveryConfig, SourcesConfig } from './types.js';
 
