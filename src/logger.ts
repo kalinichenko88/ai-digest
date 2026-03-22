@@ -23,7 +23,7 @@ function timestamp(): string {
 }
 
 export function log(tag: string, message: string): void {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = timestamp().slice(0, 10);
   const logFile = join(LOG_DIR, `${today}.md`);
   const line = `[${timestamp()}] [${tag.padEnd(13)}] ${message}\n`;
   appendFileSync(logFile, line);
