@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { fetchGithubReleases } from '../src/tools/fetch-github-releases.js';
 
 const mockFetch = vi.fn();
@@ -44,7 +45,7 @@ describe('fetchGithubReleases', () => {
     const result = await fetchGithubReleases(['nonexistent/repo']);
     expect(result.items).toHaveLength(0);
     expect(result.warnings).toHaveLength(1);
-    expect(result.warnings![0]).toContain('nonexistent/repo');
+    expect(result.warnings?.[0]).toContain('nonexistent/repo');
   });
 
   it('sends Authorization header when GITHUB_TOKEN is set', async () => {

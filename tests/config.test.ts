@@ -1,6 +1,8 @@
-import { mkdirSync, rmSync, writeFileSync } from 'fs';
-import { join } from 'path';
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+
 import { describe, expect, it } from 'vitest';
+
 import { loadDeliveryConfig, loadSourcesConfig } from '../src/config.js';
 
 const TEST_DIR = join(import.meta.dirname, 'fixtures', 'config');
