@@ -45,21 +45,22 @@ for cmd in docker claude gh yq; do
 done
 
 # --- Interactive setup ---
+# Read from /dev/tty so prompts work even when piped (curl | bash)
 echo ""
 
 ask "Digest language [en]:"
-read -r LANG_INPUT
+read -r LANG_INPUT < /dev/tty
 DIGEST_LANG="${LANG_INPUT:-en}"
 
 ask "Output path for digests [~/digests]:"
-read -r PATH_INPUT
+read -r PATH_INPUT < /dev/tty
 OUTPUT_PATH="${PATH_INPUT:-~/digests}"
 
 ask "GitHub token (optional, press Enter to skip):"
-read -r GH_TOKEN
+read -r GH_TOKEN < /dev/tty
 
 ask "Enable macOS notifications? [y/n, default: y]:"
-read -r NOTIFY_INPUT
+read -r NOTIFY_INPUT < /dev/tty
 NOTIFICATION="true"
 if [ "${NOTIFY_INPUT}" = "n" ] || [ "${NOTIFY_INPUT}" = "N" ]; then
   NOTIFICATION="false"

@@ -184,7 +184,7 @@ To use the native MCP server (without Docker), update `.claude/settings.json`:
 │   ├── add-source/         # /add-source — add a new source interactively
 │   └── validate-sources/   # /validate-sources — validate config & check URLs
 ├── .github/workflows/      # CI/CD
-│   └── docker-publish.yml  # Publish image to GHCR on tag push
+│   └── ci.yml              # Quality checks + Docker + release pipeline
 ├── scripts/run.sh          # Entry point
 ├── .env.example            # Environment variables template
 └── CLAUDE.md               # Personal context

@@ -3,7 +3,12 @@ set -euo pipefail
 
 REPO="kalinichenko88/ai-digest"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+# Detect if running from archive root (run.sh next to .version) or repo (scripts/run.sh)
+if [ -f "${SCRIPT_DIR}/.version" ]; then
+  PROJECT_DIR="$SCRIPT_DIR"
+else
+  PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+fi
 
 # --- Update subcommand ---
 if [ "${1:-}" = "update" ]; then
