@@ -42,7 +42,7 @@ if [ "${1:-}" = "update" ]; then
   else
     RELEASE_JSON=$(curl -s "https://api.github.com/repos/${REPO}/releases/latest")
   fi
-  LATEST=$(echo "${RELEASE_JSON}" | grep '"tag_name"' | head -1 | sed 's/.*"v\([^"]*\)".*/\1/')
+  LATEST=$(echo "${RELEASE_JSON}" | grep -oE '"tag_name"\s*:\s*"[^"]+"' | head -1 | sed 's/.*"v\([^"]*\)".*/\1/')
 
   if [ -z "${LATEST}" ]; then
     error "Could not fetch latest version"
@@ -57,7 +57,7 @@ if [ "${1:-}" = "update" ]; then
 
   # Download new release to temp (use UPDATE_TMPDIR to avoid shadowing POSIX TMPDIR)
   UPDATE_TMPDIR="$(mktemp -d)"
-  ARCHIVE_URL=$(echo "${RELEASE_JSON}" | grep "browser_download_url.*tar.gz" | head -1 | cut -d '"' -f 4)
+  ARCHIVE_URL=$(echo "${RELEASE_JSON}" | grep -oE '"browser_download_url"\s*:\s*"[^"]+"' | grep 'tar.gz' | head -1 | cut -d '"' -f 4)
 
   if [ -z "${ARCHIVE_URL}" ]; then
     rm -rf "${UPDATE_TMPDIR}"
