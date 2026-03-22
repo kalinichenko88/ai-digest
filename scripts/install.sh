@@ -36,7 +36,7 @@ fi
 
 # --- Check dependencies ---
 echo ""
-for cmd in docker claude gh yq; do
+for cmd in docker claude yq; do
   if command -v "$cmd" &>/dev/null; then
     info "$cmd found"
   else
