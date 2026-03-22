@@ -98,6 +98,7 @@ Write a concise, human-readable description. Include:
 - Categorized list of changes
 - Docker image tag: `ghcr.io/kalinichenko88/ai-digest:{version}`
 - Install command: `curl -sL https://github.com/kalinichenko88/ai-digest/releases/latest/download/install.sh | bash`
+- Update command: `./run.sh update`
 
 ### Step 5: Push
 
