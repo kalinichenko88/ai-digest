@@ -1,5 +1,8 @@
 # ai-digest.news
 
+[![CI](https://github.com/kalinichenko88/ai-digest/actions/workflows/ci.yml/badge.svg)](https://github.com/kalinichenko88/ai-digest/actions/workflows/ci.yml)
+[![GitHub Release](https://img.shields.io/github/v/release/kalinichenko88/ai-digest)](https://github.com/kalinichenko88/ai-digest/releases)
+
 Automated morning tech news digest powered by Claude Code + MCP.
 
 ## What it does
