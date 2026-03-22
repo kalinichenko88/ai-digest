@@ -4,6 +4,8 @@
 
 End users should not need source code. They download a release archive from GitHub Releases containing the launch script, Claude Code skills, and configs. The release process is driven by a Claude Code skill (`/release`), CI handles quality checks and artifact building.
 
+**Repository constant:** `REPO=kalinichenko88/ai-digest` — all scripts and CI reference this single constant for GitHub URLs and API calls. The actual repo slug must be confirmed before implementation.
+
 ## 1. Skill `/release <version>`
 
 **Invocation:** `/release 1.0.0`
@@ -14,9 +16,11 @@ End users should not need source code. They download a release archive from GitH
 2. **Bump version** in `package.json`, `README.md`, `.version`
 3. **Commit:** `release: v1.0.0`
 4. **Tag:** `v1.0.0`
-5. **Push** branch + tag: `git push && git push --tags`
-6. **Generate release description** — analyze `git log <prev-tag>..v<version>`, group changes by category (features, fixes, improvements)
-7. **Create GitHub Release** as draft: `gh release create v1.0.0 --title "v1.0.0" --notes "<description>" --draft`
+5. **Generate release description** — analyze `git log <prev-tag>..v<version>`, group changes by category (features, fixes, improvements)
+6. **Create GitHub Release** as draft: `gh release create v1.0.0 --title "v1.0.0" --notes "<description>" --draft`
+7. **Push** branch + tag: `git push && git push --tags`
+
+> **Note:** Draft release is created before push (step 6 before 7) to avoid a race condition where CI triggers on the tag push and tries to attach artifacts to a release that doesn't exist yet.
 
 The release stays as draft until CI attaches artifacts and publishes it.
 
@@ -25,6 +29,8 @@ The release stays as draft until CI attaches artifacts and publishes it.
 ## 2. CI Workflow
 
 **File:** `.github/workflows/ci.yml` (replaces `docker-publish.yml`)
+
+**Permissions:** `contents: write`, `packages: write` (required for release artifact upload and Docker push to GHCR).
 
 ### Trigger: any push (all branches)
 
@@ -70,10 +76,12 @@ ai-digest/
 ### Via curl (remote)
 
 ```bash
-curl -sL https://raw.githubusercontent.com/kalinichenko88/ai-digest/main/scripts/install.sh | bash
+curl -sL https://github.com/kalinichenko88/ai-digest/releases/latest/download/install.sh | bash
 ```
 
-1. Fetches latest release archive via GitHub API
+> **Note:** URL points to the latest published release asset, not to `main` branch. This ensures the installer version matches the archive it downloads.
+
+1. Fetches latest release archive via GitHub API (unauthenticated)
 2. Unpacks to current directory
 3. Runs interactive setup
 
@@ -103,17 +111,24 @@ Runs interactive setup on already unpacked files.
 **Steps:**
 
 1. **Read current version** from `.version`
-2. **Fetch latest version** via `gh api repos/kalinichenko88/ai-digest/releases/latest`
+2. **Fetch latest version** via unauthenticated GitHub REST API:
+   ```bash
+   curl -s https://api.github.com/repos/kalinichenko88/ai-digest/releases/latest
+   ```
+   Falls back to `gh api` if `gh` is present and authenticated. Reads `GITHUB_TOKEN` from `.env` if available to avoid rate limits.
 3. **Compare** — if equal, print "Already up to date" and exit
 4. **Download** new release archive to temp directory, unpack
-5. **Merge configs:**
-   - `sources.yml` — add new sources, preserve user modifications
-   - `delivery.yml` — add new keys with defaults, preserve existing values
+5. **Merge configs** (using `yq` — added as a declared dependency, checked at runtime):
+   - `sources.yml` — union merge by source `name` field: new sources are appended, existing sources keep user values. Algorithm: iterate new file entries, skip if `name` already exists in user file, append otherwise.
+   - `delivery.yml` — shallow key merge: new keys are added with defaults, existing keys preserve user values. Algorithm: for each top-level key in new file, add to user file only if key is absent.
    - `.env` — not touched
    - `CLAUDE.md` — not touched
-6. **Replace** everything else — skills, settings.json, run.sh, install.sh, README.md, .version
-7. **Pull new Docker image** — `docker pull ghcr.io/kalinichenko88/ai-digest:<new-version>`
-8. **Print** what was updated, which new config keys were added
+6. **Self-update safely** — copy new `run.sh` to a temp file, then `exec` into a helper script from temp that:
+   - Replaces skills, settings.json, run.sh, install.sh, README.md, .version
+   - Pulls new Docker image: `docker pull ghcr.io/kalinichenko88/ai-digest:<new-version>`
+   - Prints what was updated, which new config keys were added
+
+   > **Note:** `run.sh` cannot replace itself while running. The exec-into-helper pattern ensures the old script hands off to a temp copy before any files are overwritten.
 
 ## 6. File Changes Summary
 
@@ -130,8 +145,8 @@ Runs interactive setup on already unpacked files.
 
 | File | Change |
 |---|---|
-| `scripts/run.sh` | Add `update` subcommand |
-| `.github/workflows/docker-publish.yml` | Rename to `ci.yml`. Add: quality checks on every push, archive build + attach + publish on tag |
+| `scripts/run.sh` | Add `update` subcommand with exec-into-helper self-update |
+| `.github/workflows/docker-publish.yml` | Rename to `ci.yml`. Add: `contents: write` permission, quality checks on every push, archive build + attach + publish on tag |
 | `CLAUDE.md` | Add `/release` skill documentation |
 | `README.md` | Installation via `curl \| bash` and update instructions |
 
@@ -139,7 +154,17 @@ Runs interactive setup on already unpacked files.
 
 `src/`, `config/`, `tests/`, `Dockerfile`, `.claude/skills/ai-digest/`, `.claude/skills/add-source/`, `.claude/skills/validate-sources/`
 
-## 7. Full Flow
+## 7. Dependencies
+
+| Dependency | Required by | Notes |
+|---|---|---|
+| `docker` | run.sh, install.sh | Required for MCP server |
+| `claude` | run.sh | Claude Code CLI |
+| `gh` | /release skill | GitHub CLI for release creation |
+| `yq` | run.sh update | YAML merge for config updates. Checked at runtime, install.sh warns if missing |
+| `curl` | install.sh, run.sh update | Unauthenticated GitHub API calls |
+
+## 8. Full Flow
 
 ```
 Developer                            CI                              End User
@@ -152,8 +177,8 @@ git push (any branch)
 /release 1.0.0
   ├─ bump .version, package.json, README
   ├─ commit + tag v1.0.0
-  ├─ push
-  └─ gh release create (draft)
+  ├─ gh release create (draft)
+  ├─ push branch + tag
           ──────────────────►  quality checks
                                pass
                                build Docker → GHCR
@@ -167,8 +192,11 @@ git push (any branch)
                                                                       └─ ready
 
                                                                     ./run.sh update
-                                                                      ├─ check version
+                                                                      ├─ check version (curl)
                                                                       ├─ download new archive
-                                                                      ├─ merge configs
-                                                                      └─ docker pull
+                                                                      ├─ merge configs (yq)
+                                                                      ├─ exec into helper
+                                                                      ├─ replace files
+                                                                      ├─ docker pull
+                                                                      └─ print summary
 ```
