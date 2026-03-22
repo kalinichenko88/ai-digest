@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.1.3] - 2026-03-22
+
+### Added
+
+- CHANGELOG.md generation as part of the release process
+
+### Fixed
+
+- Improve JSON parsing for tag and archive URL in `run.sh`
+
 ## [0.1.2] - 2025-06-04
 
 ### Fixed
@@ -41,5 +51,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Configure import ordering and add `node:` prefix
 - Bump GitHub Actions to Node.js 22+ compatible versions
 
+[0.1.3]: https://github.com/kalinichenko88/ai-digest/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/kalinichenko88/ai-digest/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/kalinichenko88/ai-digest/releases/tag/v0.1.1
