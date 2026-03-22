@@ -6,6 +6,26 @@ Automated morning tech news digest powered by Claude Code + MCP.
 
 Runs daily, collects tech news from RSS feeds and GitHub releases, then uses Claude to summarize everything into a personalized Markdown digest.
 
+## Installation
+
+### Quick Install
+
+```bash
+curl -sL https://github.com/kalinichenko88/ai-digest/releases/latest/download/install.sh | bash
+```
+
+### Manual Install
+
+1. Download the latest release from [GitHub Releases](https://github.com/kalinichenko88/ai-digest/releases)
+2. Unpack: `tar -xzf ai-digest-v*.tar.gz`
+3. Run: `cd ai-digest && ./install.sh`
+
+### Updating
+
+```bash
+./run.sh update
+```
+
 ## Prerequisites
 
 - [Docker](https://docs.docker.com/get-docker/)
@@ -121,6 +141,18 @@ npm run test:watch
 # Lint and format
 npx @biomejs/biome check --write src/
 ```
+
+### Releasing
+
+Use the `/release` skill in Claude Code to create a new release:
+
+```
+/release 1.2.0
+```
+
+This bumps the version in `package.json`, generates a changelog, creates a git tag, and publishes a GitHub Release.
+
+### Native MCP Server
 
 To use the native MCP server (without Docker), update `.claude/settings.json`:
 
