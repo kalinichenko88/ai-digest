@@ -181,7 +181,7 @@ echo "[$(date '+%Y-%m-%d %H:%M')] Starting ai-digest run" >> "$LOG_FILE"
 # Run Claude in background, append stdout to log
 claude -p "Run ai-digest skill" \
   --model sonnet \
-  --max-turns 30 \
+  --max-turns 50 \
   --allowedTools "Read" "Write" "Bash" "Agent" "mcp__ai-digest-mcp" \
   >> "$LOG_FILE" 2>&1 &
 
