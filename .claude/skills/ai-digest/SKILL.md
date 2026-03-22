@@ -7,6 +7,16 @@ description: Run the daily AI tech news digest pipeline — collect, deduplicate
 
 You are running the ai-digest pipeline. Follow these steps exactly.
 
+## Progress Logging
+
+After completing each step, log a progress line to `logs/YYYY-MM-DD.md` via Bash:
+
+```bash
+echo "[$(date '+%Y-%m-%d %H:%M')] [pipeline     ] <message>" >> logs/YYYY-MM-DD.md
+```
+
+This keeps the user informed in real-time (they watch the log via `tail -f`). Log at every step transition — do not batch multiple steps without logging.
+
 ## Step 0: Validate Sources
 
 Before anything else, invoke the `/validate-sources` skill. It checks `config/sources.yml` for structural errors and broken URLs.
@@ -28,11 +38,15 @@ Read these files:
 - `config/delivery.yml` — language, output path, notification settings
 - `CLAUDE.md` — personal context (stack, projects, interests, topics to ignore)
 
+Log: `Step 1: Config loaded (X RSS sources, Y GitHub repos)`
+
 ## Step 2: Read Previous Digest (for deduplication)
 
 Read the most recent `.md` file from the `output_path` directory (by date in filename).
 If no previous digest exists, skip deduplication.
 Extract all URLs from the previous digest for later comparison.
+
+Log: `Step 2: Previous digest loaded (X URLs extracted)` or `Step 2: No previous digest found, skipping dedup`
 
 ## Step 3: Collect Data
 
@@ -44,6 +58,8 @@ Launch sub-agents in parallel to collect data from all sources:
 
 Merge all DigestItem[] arrays from all agents into one list.
 
+Log: `Step 3: Collected X RSS items (Y sources) + Z GitHub releases`
+
 ## Step 4: Deduplicate
 
 - Remove items whose URL appeared in the previous digest
@@ -51,10 +67,14 @@ Merge all DigestItem[] arrays from all agents into one list.
 - Merge items with very similar titles about the same topic into one entry
 - If multiple releases of the same package/tool appear, collapse into one entry with the latest version
 
+Log: `Step 4: Deduplicated — removed X URL matches, merged Y similar items, Z items remaining`
+
 ## Step 5: Filter
 
 - Read "topics to ignore" from CLAUDE.md
 - Remove any items matching ignored topics (e.g. crypto, NFT, blockchain, web3)
+
+Log: `Step 5: Filtered — removed X items (topics: Y), Z items remaining`
 
 ## Step 6: Categorize and Summarize
 
@@ -70,6 +90,8 @@ Assign each item to one category:
 An item placed in **Hot** should NOT be duplicated in other categories.
 
 For each item, write a catchy 1-2 sentence summary as the headline. Make it engaging, not dry. The headline should make the reader want to click through.
+
+Log: `Step 6: Categorized — Hot: X, Relevant: Y, AI: Z, Frontend: W, DevTools: V`
 
 ## Step 7: Generate Markdown
 
@@ -111,6 +133,8 @@ The **Hot** category is mandatory and must always be present. Skip any other cat
 
 Write the generated markdown to: `<output_path>/YYYY-MM-DD.md`
 Use today's date for the filename.
+
+Log: `Step 8: Written to <output_path>/YYYY-MM-DD.md`
 
 ## Step 9: Notify
 
