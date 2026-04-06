@@ -1,3 +1,4 @@
+import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -5,9 +6,11 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
 
-import { loadSourcesConfig } from './config.js';
+import { loadDeliveryConfig, loadSourcesConfig } from './config.js';
 import { log } from './logger.js';
+import { checkDuplicates } from './tools/check-duplicates.js';
 import { fetchGithubReleases } from './tools/fetch-github-releases.js';
+import { fetchPreviousUrls } from './tools/fetch-previous-urls.js';
 import { fetchAllRss, fetchRss } from './tools/fetch-rss.js';
 import {
   checkReachability,
@@ -16,6 +19,10 @@ import {
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const CONFIG_DIR = join(__dirname, '..', 'config');
+
+function expandHome(p: string): string {
+  return p.startsWith('~/') ? join(homedir(), p.slice(2)) : p;
+}
 
 function jsonResponse(data: unknown) {
   return { content: [{ type: 'text' as const, text: JSON.stringify(data) }] };
@@ -151,6 +158,66 @@ server.registerTool(
       })),
       summary: { passed, failed, unverifiable },
     });
+  },
+);
+
+server.registerTool(
+  'fetch_previous_urls',
+  {
+    description:
+      'Read previous digest markdown files and extract URLs + titles for deduplication',
+  },
+  async () => {
+    const delivery = loadDeliveryConfig(join(CONFIG_DIR, 'delivery.yml'));
+    const outputPath = expandHome(delivery.output_path);
+    const windowDays = delivery.deduplication?.window_days ?? 3;
+
+    log(
+      'fetch_previous_urls',
+      `Scanning ${outputPath} (window: ${windowDays} days)`,
+    );
+    const result = fetchPreviousUrls(outputPath, windowDays);
+    log(
+      'fetch_previous_urls',
+      `${result.entries.length} entries from ${result.digests_found} digests`,
+    );
+    return jsonResponse(result);
+  },
+);
+
+server.registerTool(
+  'check_duplicates',
+  {
+    description:
+      'Compare collected items against previous digests and classify as exact_duplicate, likely_duplicate, or unique',
+    inputSchema: {
+      items: z
+        .array(
+          z.object({
+            title: z.string(),
+            url: z.string(),
+            source: z.string(),
+          }),
+        )
+        .describe('Items to check for duplicates'),
+    },
+  },
+  async ({ items }) => {
+    const delivery = loadDeliveryConfig(join(CONFIG_DIR, 'delivery.yml'));
+    const outputPath = expandHome(delivery.output_path);
+    const dedupConfig = delivery.deduplication ?? {
+      window_days: 3,
+      title_similarity_threshold: 0.6,
+    };
+
+    log('check_duplicates', `Checking ${items.length} items`);
+    const previous = fetchPreviousUrls(outputPath, dedupConfig.window_days);
+    const result = checkDuplicates(items, previous.entries, dedupConfig);
+    log(
+      'check_duplicates',
+      `Done: ${result.summary.exact_duplicates} exact, ${result.summary.likely_duplicates} likely, ${result.summary.unique} unique`,
+    );
+    return jsonResponse(result);
   },
 );
 
