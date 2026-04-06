@@ -152,13 +152,14 @@ items: <total items after dedup>
 
 ### Intro paragraph
 
-Before the categorized sections, write a short narrative intro paragraph (2–4 sentences) that:
+Before the categorized sections, write a narrative intro (2–4 short paragraphs) that:
 - Synthesizes the **Hot** items into a cohesive narrative — identify themes, connections, or why today's news matters
 - Uses an **editorial, opinionated tone** — not a dry summary but a take: what's exciting, what's worth watching, what might break things
 - Explains **why** these items are significant, not just what happened
 - Ends with a natural transition into the full digest
 - Written in the configured language
 - Plain prose, no headers, no bullet points, no emoji
+- **Break into short paragraphs** (1–2 sentences each) for easy scanning — avoid walls of text
 
 The **Hot** category is mandatory and must always be present. Skip any other category that has zero items.
 
