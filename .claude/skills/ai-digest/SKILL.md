@@ -40,13 +40,14 @@ Read these files:
 
 Log: `Step 1: Config loaded (X RSS sources, Y GitHub repos)`
 
-## Step 2: Read Previous Digest (for deduplication)
+## Step 2: Read Previous Digests (for deduplication)
 
-Read the most recent `.md` file from the `output_path` directory (by date in filename).
-If no previous digest exists, skip deduplication.
-Extract all URLs from the previous digest for later comparison.
+Call the `fetch_previous_urls` MCP tool (no parameters).
+It reads the last 3 days of digest markdown files from the output path and returns all previously published URLs and titles.
 
-Log: `Step 2: Previous digest loaded (X URLs extracted)` or `Step 2: No previous digest found, skipping dedup`
+Save the returned entries — you will use them for semantic deduplication in Step 4.
+
+Log: `Step 2: Previous digests loaded — X entries from Y days` or `Step 2: No previous digests found, skipping dedup`
 
 ## Step 3: Collect Data
 
@@ -62,12 +63,32 @@ Log: `Step 3: Collected X RSS items (Y sources) + Z GitHub releases`
 
 ## Step 4: Deduplicate
 
-- Remove items whose URL appeared in the previous digest
+### 4a: Programmatic cross-day deduplication
+Call the `check_duplicates` MCP tool with all collected items from Step 3.
+Pass items as: `{ "items": [{ "title": "...", "url": "...", "source": "..." }, ...] }`
+
+The tool returns each item classified as `exact_duplicate`, `likely_duplicate`, or `unique`.
+
+- Remove all items marked `exact_duplicate` — no exceptions.
+- Items marked `unique` — keep as-is.
+
+### 4b: Review likely duplicates
+For each `likely_duplicate` item, compare with the `matched_with` entry:
+- If the item contains **substantially new information** (new version, breaking change, new analysis, different perspective) — KEEP it.
+- If it covers the same topic without new information — REMOVE it.
+- When in doubt — REMOVE. Fresh content over repeats.
+
+### 4c: Semantic deduplication (your judgment)
+Review remaining `unique` items against the entries returned in Step 2.
+If you notice a topic that was already covered in a previous digest and the new item adds nothing substantial — remove it.
+
+### 4d: Within-day deduplication
+Among the remaining items:
 - Merge items with identical URLs from different sources into one entry
 - Merge items with very similar titles about the same topic into one entry
 - If multiple releases of the same package/tool appear, collapse into one entry with the latest version
 
-Log: `Step 4: Deduplicated — removed X URL matches, merged Y similar items, Z items remaining`
+Log: `Step 4: Deduplicated — removed X exact, Y likely, Z semantic, merged W within-day. V items remaining`
 
 ## Step 5: Filter
 
