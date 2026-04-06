@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -20,6 +21,10 @@ import {
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const CONFIG_DIR = join(__dirname, '..', 'config');
 
+const pkg = JSON.parse(
+  readFileSync(join(__dirname, '..', 'package.json'), 'utf-8'),
+);
+
 function expandHome(p: string): string {
   return p.startsWith('~/') ? join(homedir(), p.slice(2)) : p;
 }
@@ -32,7 +37,7 @@ log('mcp', 'Initializing MCP server');
 
 const server = new McpServer({
   name: 'ai-digest-mcp',
-  version: '0.1.0',
+  version: pkg.version,
 });
 
 server.registerTool(
