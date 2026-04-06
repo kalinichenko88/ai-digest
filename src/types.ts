@@ -34,8 +34,60 @@ export interface GitHubRelease {
   author: { login: string } | null;
 }
 
+export interface DeduplicationConfig {
+  window_days: number;
+  title_similarity_threshold: number;
+}
+
 export interface DeliveryConfig {
   language: string;
   output_path: string;
   notification: boolean;
+  deduplication?: DeduplicationConfig;
+}
+
+export interface DigestEntry {
+  url: string;
+  title: string;
+  date: string;
+}
+
+export interface PreviousDigestResult {
+  window_days: number;
+  digests_found: number;
+  dates: string[];
+  entries: DigestEntry[];
+  urls: string[];
+}
+
+export type DuplicateStatus = 'exact_duplicate' | 'likely_duplicate' | 'unique';
+
+export interface DuplicateCheckItem {
+  title: string;
+  url: string;
+  source: string;
+}
+
+export interface DuplicateMatch {
+  title: string;
+  url: string;
+  date: string;
+}
+
+export interface DuplicateResult {
+  title: string;
+  url: string;
+  source: string;
+  status: DuplicateStatus;
+  matched_with: DuplicateMatch | null;
+}
+
+export interface DuplicateCheckResponse {
+  results: DuplicateResult[];
+  summary: {
+    total: number;
+    exact_duplicates: number;
+    likely_duplicates: number;
+    unique: number;
+  };
 }

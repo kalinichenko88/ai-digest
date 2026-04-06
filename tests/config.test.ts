@@ -54,4 +54,44 @@ output_path: /tmp/test-digests
 
     rmSync(TEST_DIR, { recursive: true });
   });
+
+  it('parses deduplication config', () => {
+    mkdirSync(TEST_DIR, { recursive: true });
+    writeFileSync(
+      join(TEST_DIR, 'delivery.yml'),
+      `language: ru
+output_path: /tmp/test-digests
+notification: true
+deduplication:
+  window_days: 5
+  title_similarity_threshold: 0.7
+`,
+    );
+
+    const config = loadDeliveryConfig(join(TEST_DIR, 'delivery.yml'));
+    expect(config.deduplication).toEqual({
+      window_days: 5,
+      title_similarity_threshold: 0.7,
+    });
+
+    rmSync(TEST_DIR, { recursive: true });
+  });
+
+  it('uses default deduplication config when not specified', () => {
+    mkdirSync(TEST_DIR, { recursive: true });
+    writeFileSync(
+      join(TEST_DIR, 'delivery.yml'),
+      `language: en
+output_path: /tmp/test
+`,
+    );
+
+    const config = loadDeliveryConfig(join(TEST_DIR, 'delivery.yml'));
+    expect(config.deduplication).toEqual({
+      window_days: 3,
+      title_similarity_threshold: 0.6,
+    });
+
+    rmSync(TEST_DIR, { recursive: true });
+  });
 });

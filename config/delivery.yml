@@ -1,3 +1,6 @@
 language: ru
 output_path: ~/Personal/0_Journal/Tech
 notification: true
+deduplication:
+  window_days: 3
+  title_similarity_threshold: 0.6
