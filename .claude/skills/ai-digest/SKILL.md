@@ -131,6 +131,8 @@ items: <total items after dedup>
 
 > <total items> items from <sources count> sources
 
+<intro paragraph>
+
 ## 🔥 Hot
 - **<catchy headline>** — <summary>. [<source>](url)
 
@@ -147,6 +149,16 @@ items: <total items after dedup>
 ## 🔧 DevTools / Releases
 - ...
 ```
+
+### Intro paragraph
+
+Before the categorized sections, write a short narrative intro paragraph (2–4 sentences) that:
+- Synthesizes the **Hot** items into a cohesive narrative — identify themes, connections, or why today's news matters
+- Uses an **editorial, opinionated tone** — not a dry summary but a take: what's exciting, what's worth watching, what might break things
+- Explains **why** these items are significant, not just what happened
+- Ends with a natural transition into the full digest
+- Written in the configured language
+- Plain prose, no headers, no bullet points, no emoji
 
 The **Hot** category is mandatory and must always be present. Skip any other category that has zero items.
 
