@@ -11,16 +11,18 @@ A Claude Code skill that runs daily via Apple Shortcuts, collects tech news from
 ```
 Apple Shortcuts (morning, scheduled)
   → run.sh
-    → claude -p --model sonnet "Run ai-digest skill" --max-turns 30
+    → claude -p --model sonnet "Run ai-digest skill" --max-turns 50
       → Claude Code auto-starts MCP server (stdio, Docker)
       → Reads SKILL.md (orchestration prompt)
       → Reads config/sources.yml + delivery.yml
-      → Reads previous digest (for deduplication)
+      → Calls fetch_previous_urls → DigestEntry[] from last N days
       → Launches sub-agents in parallel:
           ├── Agent 1: RSS sources (HN, blogs, Dev.to, GitHub Trending)
           └── Agent 2: GitHub Releases (GitHub REST API)
       → Each agent returns DigestItem[]
-      → Claude merges, deduplicates, categorizes
+      → Calls check_duplicates → classifies exact/likely/unique
+      → Claude removes exact dupes, reviews likely dupes
+      → Claude merges within-day dupes, categorizes, summarizes
       → Generates Markdown with frontmatter
       → Writes to output_path/YYYY-MM-DD.md
       → macOS notification
@@ -40,6 +42,8 @@ All tools read their configuration from `config/sources.yml` automatically.
 | `fetch_rss` | `name: string` | Looks up source by name in sources.yml, fetches its url with configured limit. Returns `ToolResult` with `DigestItem[]` |
 | `fetch_all_rss` | _(none)_ | Fetches all RSS feeds from sources.yml in parallel. Returns `ToolResult` with merged `DigestItem[]` |
 | `fetch_github_releases` | _(none)_ | Reads all repos from sources.yml, fetches latest releases. Returns `ToolResult` with `DigestItem[]` |
+| `fetch_previous_urls` | _(none)_ | Reads digest files from the last N days (from `delivery.yml` dedup config), extracts URLs and titles. Returns `PreviousDigestResult` |
+| `check_duplicates` | `items: DigestItem[]` | Classifies each item against previous entries as `exact_duplicate`, `likely_duplicate`, or `unique`. Returns `DuplicateCheckResponse` |
 | `validate_sources` | _(none)_ | Validates sources.yml structure and checks all URLs are reachable. Returns validation report |
 
 ### Data Types
@@ -60,6 +64,47 @@ interface DigestItem {
 interface ToolResult {
   items: DigestItem[];
   warnings?: string[];   // e.g. "rss: feed unavailable, skipped"
+}
+
+// Deduplication types
+
+interface DeduplicationConfig {
+  window_days: number;               // how many past days to check (default: 3)
+  title_similarity_threshold: number; // 0–1, default: 0.6
+}
+
+interface DigestEntry {
+  url: string;
+  title: string;
+  date: string; // YYYY-MM-DD from digest filename
+}
+
+interface PreviousDigestResult {
+  window_days: number;
+  digests_found: number;
+  dates: string[];
+  entries: DigestEntry[];
+  urls: string[];        // normalized URLs for quick lookup
+}
+
+type DuplicateStatus = 'exact_duplicate' | 'likely_duplicate' | 'unique';
+
+interface DuplicateResult {
+  title: string;
+  url: string;
+  source: string;
+  status: DuplicateStatus;
+  matched_with: { title: string; url: string; date: string } | null;
+}
+
+interface DuplicateCheckResponse {
+  results: DuplicateResult[];
+  summary: {
+    total: number;
+    exact_duplicates: number;
+    likely_duplicates: number;
+    unique: number;
+  };
 }
 ```
 
@@ -131,6 +176,9 @@ github_releases:
 language: ru
 output_path: /Users/ivan_kalinichenko/Personal/0_Journal/Tech
 notification: true
+deduplication:
+  window_days: 3
+  title_similarity_threshold: 0.6
 ```
 
 ## Digest Output Format
@@ -172,14 +220,36 @@ items: 42
 - "Relevant to your projects" section — Claude matches against CLAUDE.md context
 - Language determined by `language` config value
 
-## Deduplication and History
+## Deduplication
 
-- Before generating, Claude reads the latest digest from `output_path` by date in filename
-- URL match → remove duplicate
-- Similar title (same release, same news from different sources) → merge into one entry
-- Multiple releases of same package in one day → collapse into one entry (latest version)
-- No database. Claude reads the markdown file and decides what's a duplicate via SKILL.md instructions
-- If no previous digest found → work without dedup
+Two-layer dedup: programmatic (MCP tools) + semantic (Claude judgment).
+
+### Cross-day dedup (programmatic)
+
+1. `fetch_previous_urls` reads digest markdown files from `output_path` within the configured `window_days` (default 3), extracts all URLs and titles into `DigestEntry[]`
+2. `check_duplicates` compares each incoming `DigestItem` against previous entries:
+   - **Exact duplicate** — normalized URL matches a previous entry → auto-remove
+   - **Likely duplicate** — title similarity (word-overlap) ≥ `title_similarity_threshold` (default 0.6) → Claude reviews: keep only if new info (new version, breaking change, new analysis)
+   - **Unique** — no match → keep
+
+**Normalization:**
+- URL: lowercase, strip query params / fragments / trailing slashes
+- Title: lowercase, strip punctuation, collapse whitespace
+- Similarity: `|intersection of words| / min(|words_a|, |words_b|)`
+
+### Cross-day dedup (semantic)
+
+Claude compares remaining unique items against previous digest entries for topical overlap that normalization can't catch.
+
+### Within-day dedup
+
+- Same URL from different sources → merge into one entry
+- Very similar titles about the same topic → merge
+- Multiple releases of same package → collapse into one entry (latest version)
+
+### No database
+
+All dedup state comes from reading markdown digest files. No external storage needed. If no previous digests exist, dedup is skipped without error.
 
 ## Error Handling
 
@@ -230,15 +300,26 @@ ai-digest.news/
 │   ├── config.ts
 │   ├── logger.ts
 │   ├── types.ts
-│   └── tools/
-│       ├── fetch-rss.ts
-│       ├── fetch-github-releases.ts
-│       └── validate-sources.ts
+│   ├── tools/
+│   │   ├── fetch-rss.ts
+│   │   ├── fetch-github-releases.ts
+│   │   ├── fetch-previous-urls.ts
+│   │   ├── check-duplicates.ts
+│   │   └── validate-sources.ts
+│   └── utils/
+│       ├── normalize.ts
+│       └── similarity.ts
 ├── tests/
 │   ├── config.test.ts
 │   ├── fetch-rss.test.ts
 │   ├── fetch-github-releases.test.ts
-│   └── validate-sources.test.ts
+│   ├── fetch-previous-urls.test.ts
+│   ├── check-duplicates.test.ts
+│   ├── normalize.test.ts
+│   ├── similarity.test.ts
+│   ├── validate-sources.test.ts
+│   └── fixtures/
+│       └── digests/           # Sample digests for dedup tests
 ├── config/
 │   ├── sources.yml
 │   └── delivery.yml
@@ -264,7 +345,7 @@ ai-digest.news/
 ## Budget and Limits
 
 - **Model**: Sonnet (hardcoded in run.sh)
-- **Max turns**: 30 (hardcoded in run.sh)
+- **Max turns**: 50 (hardcoded in run.sh)
 - **Subscription**: Claude Max — no `--max-budget-usd` needed
 - **Typical run**: 40–60 items from 13 RSS sources + 6 GitHub repos
 

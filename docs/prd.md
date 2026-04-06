@@ -64,12 +64,17 @@ Acceptance criteria:
 - Multiple releases of the same package in one day → collapse into one entry with latest version
 
 **US-2.2: Deduplication across days**
-As a user, I want items from yesterday's digest filtered out so that I only see new content.
+As a user, I want items from recent digests filtered out so that I only see new content.
 
 Acceptance criteria:
-- Claude reads the most recent digest file from output path
-- Items with matching URLs are excluded
-- If no previous digest exists, skip dedup without error
+- MCP tool `fetch_previous_urls` reads digest files from the last N days (configurable `window_days`, default 3)
+- MCP tool `check_duplicates` classifies each incoming item as `exact_duplicate`, `likely_duplicate`, or `unique`
+- Exact duplicates (normalized URL match) are removed automatically
+- Likely duplicates (title similarity above threshold) are reviewed by Claude — kept only if they add new information (new version, breaking change, new analysis)
+- URL normalization: lowercase, strip query params / fragments / trailing slashes
+- Title normalization: lowercase, strip punctuation, collapse whitespace
+- Title similarity: word-overlap score (intersection / min word count)
+- If no previous digests exist, skip dedup without error
 
 **US-2.3: Categorization**
 As a user, I want items grouped by category so that I can quickly scan the areas I care about.
@@ -131,7 +136,8 @@ Acceptance criteria:
 As a user, I want to configure output settings in a YAML file so that I can customize where and how the digest is delivered.
 
 Acceptance criteria:
-- `config/delivery.yml` with: language, output_path, notification
+- `config/delivery.yml` with: language, output_path, notification, deduplication
+- `deduplication` section has: `window_days` (default 3), `title_similarity_threshold` (default 0.6)
 - All fields have sensible defaults
 
 **US-4.3: Add source via skill command**
