@@ -5,9 +5,6 @@ rss:
   - name: lobsters
     url: https://lobste.rs/rss
     limit: 20
-  - name: claude-code-blog
-    url: https://rss.app/feeds/Ec1x9ZalpmNXMvYj.xml
-    limit: 10
   - name: react-blog
     url: https://react.dev/rss.xml
     limit: 10
@@ -38,6 +35,9 @@ rss:
   - name: simonwillison-blog
     url: https://simonwillison.net/atom/everything/
     limit: 15
+  - name: openclaw
+    url: https://openclaw.ai/rss.xml
+    limit: 10
 
 github_releases:
   repos:
