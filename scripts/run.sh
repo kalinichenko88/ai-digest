@@ -12,14 +12,12 @@ fi
 
 # --- Update subcommand ---
 if [ "${1:-}" = "update" ]; then
-  BOLD='\033[1m'
   GREEN='\033[0;32m'
   YELLOW='\033[0;33m'
   RED='\033[0;31m'
   NC='\033[0m'
 
   info()  { echo -e "${GREEN}✓${NC} $1"; }
-  warn()  { echo -e "${YELLOW}!${NC} $1"; }
   error() { echo -e "${RED}✗${NC} $1"; exit 1; }
 
   # Read current version
@@ -108,18 +106,7 @@ if command -v yq &>/dev/null; then
     done
   done
 
-  # delivery.yml: add new keys, preserve existing values
-  NEW_KEYS=$(yq 'keys | .[]' "${NEW_DIR}/config/delivery.yml" 2>/dev/null || true)
-  for key in $NEW_KEYS; do
-    EXISTS=$(yq ".$key" "${TARGET_DIR}/config/delivery.yml" 2>/dev/null || true)
-    if [ "$EXISTS" = "null" ] || [ -z "$EXISTS" ]; then
-      YQ_TMP=$(mktemp)
-      yq ".$key" "${NEW_DIR}/config/delivery.yml" > "$YQ_TMP"
-      yq -i ".$key = load(\"$YQ_TMP\")" "${TARGET_DIR}/config/delivery.yml"
-      rm -f "$YQ_TMP"
-      info "Added new config key: $key"
-    fi
-  done
+  # delivery.yml needs no merge — loadDeliveryConfig defaults every key.
 else
   warn "yq not found — skipping config merge, configs unchanged"
 fi

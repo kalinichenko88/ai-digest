@@ -76,4 +76,12 @@ describe('getDigestFiles', () => {
     expect(files).toHaveLength(1);
     expect(files[0].date).toBe('2026-04-05');
   });
+
+  // Both this window filter and the logger's filenames assume sv-SE is
+  // ISO-shaped. A small-ICU runtime falls back to en-US and breaks both.
+  it('sv-SE renders ISO-shaped local dates', () => {
+    const d = new Date(2026, 3, 5, 17, 32, 14);
+    expect(d.toLocaleDateString('sv-SE')).toBe('2026-04-05');
+    expect(d.toLocaleString('sv-SE').slice(0, 16)).toBe('2026-04-05 17:32');
+  });
 });

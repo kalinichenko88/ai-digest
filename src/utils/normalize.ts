@@ -12,12 +12,10 @@ export function normalizeUrl(url: string): string {
 
 export function normalizeTitle(title: string): string {
   if (!title) return '';
+  // Strip punctuation unless it sits between digits (keeps "3.5", "v1.2").
   return title
     .toLowerCase()
-    .replace(
-      /(?<!\d)[\p{P}\p{S}](?!\d)|(?<=\d)[\p{P}\p{S}](?!\d)|(?<!\d)[\p{P}\p{S}](?=\d)/gu,
-      ' ',
-    )
+    .replace(/(?<!\d)[\p{P}\p{S}]|[\p{P}\p{S}](?!\d)/gu, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 }

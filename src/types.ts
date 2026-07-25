@@ -43,7 +43,7 @@ export interface DeliveryConfig {
   language: string;
   output_path: string;
   notification: boolean;
-  deduplication?: DeduplicationConfig;
+  deduplication: DeduplicationConfig;
 }
 
 export interface DigestEntry {
@@ -57,7 +57,6 @@ export interface PreviousDigestResult {
   digests_found: number;
   dates: string[];
   entries: DigestEntry[];
-  urls: string[];
 }
 
 export type DuplicateStatus = 'exact_duplicate' | 'likely_duplicate' | 'unique';

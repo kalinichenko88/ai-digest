@@ -24,17 +24,15 @@ export function loadDeliveryConfig(path: string): DeliveryConfig {
     language: parsed.language ?? 'en',
     output_path: parsed.output_path ?? '~/digests',
     notification: parsed.notification ?? true,
-    deduplication: parsed.deduplication
-      ? {
-          window_days: parsed.deduplication.window_days ?? 3,
-          title_similarity_threshold:
-            parsed.deduplication.title_similarity_threshold ?? 0.6,
-        }
-      : { window_days: 3, title_similarity_threshold: 0.6 },
+    deduplication: {
+      window_days: parsed.deduplication?.window_days ?? 3,
+      title_similarity_threshold:
+        parsed.deduplication?.title_similarity_threshold ?? 0.6,
+    },
   };
   log(
     'config',
-    `Delivery: lang=${config.language}, output=${config.output_path}, notify=${config.notification}, dedup_window=${config.deduplication?.window_days}`,
+    `Delivery: lang=${config.language}, output=${config.output_path}, notify=${config.notification}, dedup_window=${config.deduplication.window_days}`,
   );
   return config;
 }

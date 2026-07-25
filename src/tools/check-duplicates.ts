@@ -1,6 +1,4 @@
-import { log } from '../logger.js';
 import type {
-  DeduplicationConfig,
   DigestEntry,
   DuplicateCheckItem,
   DuplicateCheckResponse,
@@ -101,28 +99,4 @@ function classify(
 
 function toMatch(entry: DigestEntry): DuplicateMatch {
   return { title: entry.title, url: entry.url, date: entry.date };
-}
-
-export function checkDuplicates(
-  items: DuplicateCheckItem[],
-  previousEntries: DigestEntry[],
-  config: DeduplicationConfig,
-): DuplicateCheckResponse {
-  log(
-    'dedup',
-    `Checking ${items.length} items against ${previousEntries.length} previous entries`,
-  );
-
-  const response = classifyItems(
-    items,
-    previousEntries,
-    config.title_similarity_threshold,
-  );
-
-  log(
-    'dedup',
-    `Results: ${response.summary.exact_duplicates} exact, ${response.summary.likely_duplicates} likely, ${response.summary.unique} unique`,
-  );
-
-  return response;
 }

@@ -3,7 +3,6 @@ import type { SourcesConfig } from '../types.js';
 export interface ReachabilityResult {
   type: 'rss' | 'github';
   name: string;
-  url: string;
   status: 'ok' | 'failed' | 'unverifiable';
   detail?: string;
 }
@@ -81,14 +80,13 @@ async function checkUrl(
       await res.body?.cancel();
     }
     if (res.ok) {
-      return { type, name, url, status: 'ok' };
+      return { type, name, status: 'ok' };
     }
-    return { type, name, url, status: 'failed', detail: `HTTP ${res.status}` };
+    return { type, name, status: 'failed', detail: `HTTP ${res.status}` };
   } catch (err) {
     return {
       type,
       name,
-      url,
       status: 'failed',
       detail: err instanceof Error ? err.message : String(err),
     };
