@@ -5,6 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.1.6] - 2026-07-25
+
+### Added
+
+- Append-only `logs/run.log` capturing process diagnostics: uncaught exceptions,
+  unhandled rejections, signals, and exit codes (a missing exit line means SIGKILL)
+- Per-tool call timing and error logging — a throwing handler is no longer invisible
+- `run.sh` fails fast with a clear exit code when Docker is missing or its daemon is down,
+  and notifies on failure so a dead run is visible without digging through logs
+
+### Fixed
+
+- CI now runs `tsc --noEmit` and treats Biome warnings as errors — type and lint breaks
+  previously slipped through and surfaced as a stuck draft release
+- `@types/node` realigned to the Node 24 runtime, with the `engines` floor enforced
+  via `.npmrc` so an incompatible install fails instead of warning
+
+### Changed
+
+- Removed ~650 lines of over-engineering with no behavior change: the pass-through
+  `checkDuplicates` tool, unread result fields, and duplicated log statements
+- Hand-rolled date and timestamp formatting replaced with `toLocaleString('sv-SE')`,
+  pinned by a test so a small-ICU runtime can't silently corrupt log filenames
+- Sources: added openclaw RSS, dropped the broken claude-code-blog feed
+
+### Docs
+
+- Deleted `docs/prd.md` and `docs/design-spec.md` — both restated the README and the
+  code; git history keeps the original rationale
+
+### Improved
+
+- Dependencies bumped to latest majors: TypeScript 7, Vitest 4, MCP SDK 1.29,
+  lint-staged 17, Biome 2.5.5, plus GitHub Actions updates
+
 ## [0.1.5] - 2026-04-06
 
 ### Added
@@ -82,6 +117,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Configure import ordering and add `node:` prefix
 - Bump GitHub Actions to Node.js 22+ compatible versions
 
+[0.1.6]: https://github.com/kalinichenko88/ai-digest/compare/v0.1.5...v0.1.6
 [0.1.5]: https://github.com/kalinichenko88/ai-digest/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/kalinichenko88/ai-digest/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/kalinichenko88/ai-digest/compare/v0.1.2...v0.1.3
