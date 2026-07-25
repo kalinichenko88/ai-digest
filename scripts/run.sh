@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-set -euo pipefail
+# -E so the ERR trap survives into functions and subshells
+set -Eeuo pipefail
 
 REPO="kalinichenko88/ai-digest"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -9,6 +10,23 @@ if [ -f "${SCRIPT_DIR}/.version" ]; then
 else
   PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 fi
+
+# --- Diagnostics ---
+# Launchers like Shortcuts and cron discard stderr and show only an exit code,
+# so anything failing before the run starts left no trace at all.
+LOG_DIR="$PROJECT_DIR/logs"
+RUN_LOG="$LOG_DIR/run.log"
+mkdir -p "$LOG_DIR"
+
+runlog() { echo "[$(date '+%Y-%m-%d %H:%M')] [$$] $1" >> "$RUN_LOG"; }
+
+# Keep stderr on screen when interactive, capture it otherwise.
+[ -t 2 ] || exec 2>> "$RUN_LOG"
+trap 'runlog "run.sh died at line $LINENO: $BASH_COMMAND (exit $?)"' ERR
+
+# PATH is the usual difference between a working terminal run and a failing
+# Shortcuts one — Shortcuts starts a shell without your profile.
+runlog "start claude=$(command -v claude || echo MISSING) docker=$(command -v docker || echo MISSING) PATH=$PATH"
 
 # --- Update subcommand ---
 if [ "${1:-}" = "update" ]; then
@@ -154,12 +172,22 @@ HELPER
 fi
 
 # --- Default: run digest ---
-LOG_DIR="$PROJECT_DIR/logs"
 LOG_FILE="$LOG_DIR/$(date +%Y-%m-%d).md"
 
-mkdir -p "$LOG_DIR"
-
 cd "$PROJECT_DIR"
+
+# The MCP server runs in a container: no daemon means no tools and no server-side
+# log either. Distinct exit codes so the launcher shows a diagnosis, not "exit 1".
+if grep -q '"docker"' "$PROJECT_DIR/.claude/settings.json" 2>/dev/null; then
+  if ! command -v docker >/dev/null; then
+    runlog "docker not found in PATH"
+    exit 2
+  fi
+  if ! docker info >/dev/null 2>&1; then
+    runlog "Docker daemon not running"
+    exit 3
+  fi
+fi
 
 START_TIME=$(date +%s)
 
@@ -187,5 +215,12 @@ END_TIME=$(date +%s)
 ELAPSED=$(( END_TIME - START_TIME ))
 
 echo "[$(date '+%Y-%m-%d %H:%M')] Finished with exit code $EXIT_CODE (${ELAPSED}s elapsed)" >> "$LOG_FILE"
+runlog "finished exit=$EXIT_CODE elapsed=${ELAPSED}s"
+
+# 137 = SIGKILL (OOM), 143 = SIGTERM
+if [ "$EXIT_CODE" -ne 0 ] && command -v osascript >/dev/null; then
+  osascript -e "display notification \"exit $EXIT_CODE — see logs/run.log\" with title \"ai-digest failed\"" >/dev/null 2>&1 || true
+fi
+
 echo "Done (${ELAPSED}s, exit code $EXIT_CODE)"
 exit $EXIT_CODE

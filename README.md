@@ -137,9 +137,16 @@ GITHUB_TOKEN=ghp_your_token_here
 # View latest digest
 cat "$(ls -1t ~/digests/*.md | head -1)"
 
-# Check logs
+# Watch this run's digest output
 tail -f logs/$(date +%Y-%m-%d).md
+
+# Diagnose a crash (process start/exit, tool errors, signals)
+tail -f logs/run.log
 ```
+
+When a run dies, `logs/run.log` is the file to read. Exit codes: `2` docker
+missing, `3` Docker daemon down, `137` killed (usually OOM), `143` terminated.
+A run with no `exiting code=` line was killed outright rather than crashing.
 
 ## Development
 
