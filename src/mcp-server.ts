@@ -40,6 +40,33 @@ const server = new McpServer({
   version: pkg.version,
 });
 
+// Wrap once here instead of in each handler: the SDK turns a thrown handler
+// into a client-side error response, so without this a failing tool leaves no
+// trace in the log at all. Timing catches the "it just hung" case.
+type ToolHandler = (...args: unknown[]) => Promise<unknown>;
+
+const registerTool = server.registerTool.bind(server) as (
+  name: string,
+  config: unknown,
+  handler: ToolHandler,
+) => unknown;
+
+server.registerTool = ((name: string, config: unknown, handler: ToolHandler) =>
+  registerTool(name, config, async (...args) => {
+    const start = Date.now();
+    try {
+      const result = await handler(...args);
+      log(name, `ok in ${Date.now() - start}ms`);
+      return result;
+    } catch (err) {
+      log(
+        name,
+        `FAILED after ${Date.now() - start}ms: ${err instanceof Error ? err.stack : err}`,
+      );
+      throw err;
+    }
+  })) as typeof server.registerTool;
+
 server.registerTool(
   'fetch_rss',
   {
@@ -204,6 +231,26 @@ server.registerTool(
   },
 );
 
+// Death hooks. A missing "exiting code=" line is itself the diagnosis: the
+// process was SIGKILLed (OOM, docker stop timeout, kill -9).
+process.on('uncaughtException', (err) => {
+  log('mcp', `uncaughtException: ${err.stack ?? err}`);
+  process.exit(1);
+});
+process.on('unhandledRejection', (reason) => {
+  log(
+    'mcp',
+    `unhandledRejection: ${reason instanceof Error ? reason.stack : reason}`,
+  );
+});
+for (const signal of ['SIGTERM', 'SIGINT', 'SIGHUP'] as const) {
+  process.on(signal, () => {
+    log('mcp', `got ${signal}`);
+    process.exit(0);
+  });
+}
+process.on('exit', (code) => log('mcp', `exiting code=${code}`));
+
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
@@ -211,6 +258,7 @@ async function main() {
 }
 
 main().catch((err) => {
-  log('mcp', `Fatal error: ${err}`);
+  log('mcp', `Fatal error: ${err instanceof Error ? err.stack : err}`);
   console.error(err);
+  process.exit(1);
 });
