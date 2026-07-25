@@ -2,6 +2,9 @@
   "name": "ai-digest-mcp",
   "version": "0.1.5",
   "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
@@ -18,7 +21,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.5",
-    "@types/node": "^26.1.1",
+    "@types/node": "^24.13.3",
     "husky": "^9.1.7",
     "lint-staged": "^17.2.0",
     "typescript": "^7.0.2",
