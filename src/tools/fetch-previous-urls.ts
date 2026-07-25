@@ -3,7 +3,6 @@ import { join } from 'node:path';
 
 import { log } from '../logger.js';
 import type { DigestEntry, PreviousDigestResult } from '../types.js';
-import { normalizeUrl } from '../utils/normalize.js';
 
 const DATE_PATTERN = /^(\d{4}-\d{2}-\d{2})\.md$/;
 
@@ -17,10 +16,11 @@ export function getDigestFiles(
   windowDays: number,
   today: Date = new Date(),
 ): DigestFile[] {
-  const todayStr = formatDate(today);
+  // sv-SE renders dates as ISO "YYYY-MM-DD" in local time.
+  const todayStr = today.toLocaleDateString('sv-SE');
   const cutoff = new Date(today);
   cutoff.setDate(cutoff.getDate() - windowDays);
-  const cutoffStr = formatDate(cutoff);
+  const cutoffStr = cutoff.toLocaleDateString('sv-SE');
 
   let filenames: string[];
   try {
@@ -84,7 +84,6 @@ export function fetchPreviousUrls(
       digests_found: 0,
       dates: [],
       entries: [],
-      urls: [],
     };
   }
 
@@ -94,8 +93,6 @@ export function fetchPreviousUrls(
     const parsed = parseDigestMarkdown(content, file.date);
     entries.push(...parsed);
   }
-
-  const urls = [...new Set(entries.map((e) => normalizeUrl(e.url)))];
 
   log(
     'dedup',
@@ -107,13 +104,5 @@ export function fetchPreviousUrls(
     digests_found: files.length,
     dates: files.map((f) => f.date),
     entries,
-    urls,
   };
-}
-
-function formatDate(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
 }

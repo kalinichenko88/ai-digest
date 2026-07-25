@@ -9,7 +9,7 @@ import { z } from 'zod';
 
 import { loadDeliveryConfig, loadSourcesConfig } from './config.js';
 import { log } from './logger.js';
-import { checkDuplicates } from './tools/check-duplicates.js';
+import { classifyItems } from './tools/check-duplicates.js';
 import { fetchGithubReleases } from './tools/fetch-github-releases.js';
 import { fetchPreviousUrls } from './tools/fetch-previous-urls.js';
 import { fetchAllRss, fetchRss } from './tools/fetch-rss.js';
@@ -77,16 +77,7 @@ server.registerTool(
   },
   async () => {
     const config = loadSourcesConfig(join(CONFIG_DIR, 'sources.yml'));
-    log(
-      'fetch_all_rss',
-      `Fetching all ${config.rss.length} RSS feeds in parallel`,
-    );
-    const result = await fetchAllRss(config.rss);
-    log(
-      'fetch_all_rss',
-      `${result.items.length} items collected${result.warnings ? `, warnings: ${result.warnings.join('; ')}` : ''}`,
-    );
-    return jsonResponse(result);
+    return jsonResponse(await fetchAllRss(config.rss));
   },
 );
 
@@ -155,12 +146,7 @@ server.registerTool(
         valid: structureErrors.length === 0,
         errors: structureErrors,
       },
-      reachability: reachability.map((r) => ({
-        type: r.type,
-        name: r.name,
-        status: r.status,
-        detail: r.detail,
-      })),
+      reachability,
       summary: { passed, failed, unverifiable },
     });
   },
@@ -175,18 +161,9 @@ server.registerTool(
   async () => {
     const delivery = loadDeliveryConfig(join(CONFIG_DIR, 'delivery.yml'));
     const outputPath = expandHome(delivery.output_path);
-    const windowDays = delivery.deduplication?.window_days ?? 3;
-
-    log(
-      'fetch_previous_urls',
-      `Scanning ${outputPath} (window: ${windowDays} days)`,
+    return jsonResponse(
+      fetchPreviousUrls(outputPath, delivery.deduplication.window_days),
     );
-    const result = fetchPreviousUrls(outputPath, windowDays);
-    log(
-      'fetch_previous_urls',
-      `${result.entries.length} entries from ${result.digests_found} digests`,
-    );
-    return jsonResponse(result);
   },
 );
 
@@ -210,14 +187,15 @@ server.registerTool(
   async ({ items }) => {
     const delivery = loadDeliveryConfig(join(CONFIG_DIR, 'delivery.yml'));
     const outputPath = expandHome(delivery.output_path);
-    const dedupConfig = delivery.deduplication ?? {
-      window_days: 3,
-      title_similarity_threshold: 0.6,
-    };
+    const dedupConfig = delivery.deduplication;
 
     log('check_duplicates', `Checking ${items.length} items`);
     const previous = fetchPreviousUrls(outputPath, dedupConfig.window_days);
-    const result = checkDuplicates(items, previous.entries, dedupConfig);
+    const result = classifyItems(
+      items,
+      previous.entries,
+      dedupConfig.title_similarity_threshold,
+    );
     log(
       'check_duplicates',
       `Done: ${result.summary.exact_duplicates} exact, ${result.summary.likely_duplicates} likely, ${result.summary.unique} unique`,

@@ -9,26 +9,14 @@ if (!process.env.VITEST) {
   mkdirSync(LOG_DIR, { recursive: true });
 }
 
+// sv-SE is ISO-shaped: "2026-07-25 17:32:14" in local time.
 function timestamp(): string {
-  const now = new Date();
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return (
-    now.getFullYear() +
-    '-' +
-    pad(now.getMonth() + 1) +
-    '-' +
-    pad(now.getDate()) +
-    ' ' +
-    pad(now.getHours()) +
-    ':' +
-    pad(now.getMinutes())
-  );
+  return new Date().toLocaleString('sv-SE').slice(0, 16);
 }
 
 export function log(tag: string, message: string): void {
   if (process.env.VITEST) return;
-  const today = timestamp().slice(0, 10);
-  const logFile = join(LOG_DIR, `${today}.md`);
-  const line = `[${timestamp()}] [${tag.padEnd(13)}] ${message}\n`;
-  appendFileSync(logFile, line);
+  const ts = timestamp();
+  const logFile = join(LOG_DIR, `${ts.slice(0, 10)}.md`);
+  appendFileSync(logFile, `[${ts}] [${tag.padEnd(13)}] ${message}\n`);
 }
