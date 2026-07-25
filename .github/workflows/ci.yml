@@ -26,7 +26,10 @@ jobs:
       - run: npm ci
 
       - name: Biome check
-        run: npx biome check
+        run: npx biome check --error-on-warnings
+
+      - name: Typecheck
+        run: npx tsc --noEmit
 
       - name: Run tests
         run: npm test
