@@ -1,4 +1,4 @@
-FROM node:24.21.0-alpine AS build
+FROM node:26.9.0-alpine AS build
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
@@ -6,7 +6,7 @@ COPY src/ src/
 COPY tsconfig.json ./
 RUN npm run build
 
-FROM node:24.21.0-alpine
+FROM node:26.9.0-alpine
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev --ignore-scripts
