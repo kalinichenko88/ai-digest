@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.1.7] - 2026-09-24
+
+### Improved
+
+- Dependencies updated: Vitest 5, MCP SDK 1.30, zod 4.6, Biome 2.5.14, plus patch
+  releases — clears all 6 `npm audit` advisories
+- Docker base image pinned to `node:24.21.0-alpine`, with Dependabot keeping it current
+
 ## [0.1.6] - 2026-07-25
 
 ### Added
@@ -117,6 +125,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Configure import ordering and add `node:` prefix
 - Bump GitHub Actions to Node.js 22+ compatible versions
 
+[0.1.7]: https://github.com/kalinichenko88/ai-digest/compare/v0.1.6...v0.1.7
 [0.1.6]: https://github.com/kalinichenko88/ai-digest/compare/v0.1.5...v0.1.6
 [0.1.5]: https://github.com/kalinichenko88/ai-digest/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/kalinichenko88/ai-digest/compare/v0.1.3...v0.1.4
