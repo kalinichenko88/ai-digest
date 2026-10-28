@@ -43,7 +43,7 @@ Log: `Step 1: Config loaded (X RSS sources, Y GitHub repos)`
 ## Step 2: Read Previous Digests (for deduplication)
 
 Call the `fetch_previous_urls` MCP tool (no parameters).
-It reads the last `window_days` days (`config/delivery.yml`) of digest markdown files from the output path and returns all previously published URLs and titles.
+It reads the last `deduplication.window_days` days (`config/delivery.yml`, default 3) of digest markdown files from the output path and returns all previously published URLs and titles.
 
 Save the returned entries — you will use them for semantic deduplication in Step 4.
 
@@ -159,6 +159,8 @@ items: <total items after dedup>
 - ...
 ```
 
+Put one blank line after every heading, as the template shows.
+
 ### Intro paragraph
 
 Before the categorized sections, write a narrative intro (2–4 short paragraphs) that:
@@ -171,8 +173,6 @@ Before the categorized sections, write a narrative intro (2–4 short paragraphs
 - **Break into short paragraphs** (1–2 sentences each) for easy scanning — avoid walls of text
 
 The **Hot** category is mandatory and must always be present. Skip any other category that has zero items.
-
-Put one blank line after every heading, as the template shows.
 
 ## Step 8: Write File
 

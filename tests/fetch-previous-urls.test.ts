@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
@@ -83,5 +84,17 @@ describe('getDigestFiles', () => {
     const d = new Date(2026, 3, 5, 17, 32, 14);
     expect(d.toLocaleDateString('sv-SE')).toBe('2026-04-05');
     expect(d.toLocaleString('sv-SE').slice(0, 16)).toBe('2026-04-05 17:32');
+  });
+});
+
+describe('the digest template of the ai-digest skill', () => {
+  it('puts a blank line after every heading', () => {
+    const skill = readFileSync(
+      join(import.meta.dirname, '..', '.claude/skills/ai-digest/SKILL.md'),
+      'utf-8',
+    );
+    const lines = skill.split('```markdown\n')[1].split('\n```')[0].split('\n');
+    const glued = lines.filter((l, i) => l.startsWith('#') && lines[i + 1]);
+    expect(glued).toEqual([]);
   });
 });
