@@ -19,7 +19,6 @@ describe('validateSources', () => {
     const dir = mkdtempSync(join(tmpdir(), 'ai-digest-'));
     const path = join(dir, 'sources.yml');
     writeFileSync(path, 'github_releases:\n  repos:\n    - vercel/next.js\n');
-    mockFetch.mockResolvedValue({ ok: true, status: 200 });
 
     const result = await validateSources(path);
     rmSync(dir, { recursive: true });
