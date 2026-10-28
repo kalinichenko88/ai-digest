@@ -25,6 +25,19 @@ export interface SourcesConfig {
   };
 }
 
+export interface ReachabilityResult {
+  type: 'rss' | 'github';
+  name: string;
+  status: 'ok' | 'failed' | 'unverifiable';
+  detail?: string;
+}
+
+export interface SourcesValidation {
+  structure: { valid: boolean; errors: string[] };
+  reachability: ReachabilityResult[];
+  summary: { passed: number; failed: number; unverifiable: number };
+}
+
 export interface GitHubRelease {
   tag_name: string;
   name: string | null;

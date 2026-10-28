@@ -37,8 +37,14 @@ describe('validateStructure', () => {
   });
 
   const invalid: [string, RssSource[], string[]][] = [
-    ['empty name', [{ name: '', url: 'https://a.com', limit: 10 }], []],
+    ['non-empty string', [{ name: '', url: 'https://a.com', limit: 10 }], []],
+    [
+      'non-empty string',
+      [{ name: 2024, url: 'https://a.com', limit: 1 } as unknown as RssSource],
+      [],
+    ],
     ['url', [{ name: 'test', url: 'ftp://bad', limit: 10 }], []],
+    ['url', [{ name: 'test', url: 123, limit: 1 } as unknown as RssSource], []],
     ['limit', [{ name: 'test', url: 'https://a.com', limit: 0 }], []],
     [
       'duplicate',

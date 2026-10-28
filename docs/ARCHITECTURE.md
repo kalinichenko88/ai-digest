@@ -86,7 +86,7 @@ which uses `utils/`.
 | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Edge              | the tool handlers in `src/mcp-server.ts`; each `SKILL.md` in `.claude/skills/`; `scripts/run.sh`                                                                                             |
 | Check at the edge | the zod `inputSchema` of each tool in `src/mcp-server.ts`; the defaults and the `sources.yml` shape check in `src/config.ts` (see _Cross-cutting concerns_)                                  |
-| Logic             | `src/tools/check-duplicates.ts`; `validateStructure` in `src/tools/validate-sources.ts`; `src/utils/`                                                                                        |
+| Logic             | `src/tools/check-duplicates.ts`; `validateSources` and `validateStructure` in `src/tools/validate-sources.ts`; `src/utils/`                                                                  |
 | Data              | `src/tools/fetch-rss.ts`; `src/tools/fetch-github-releases.ts`; `src/tools/fetch-previous-urls.ts`; `checkReachability` in `src/tools/validate-sources.ts`; `src/config.ts`; `src/logger.ts` |
 
 ## Patterns
@@ -147,11 +147,12 @@ The limits come from the project's own sizes on 2026-10-28: the 90th
 percentile by nearest rank, over the 28 code files and 7 folders that
 `data.ere` of the debt skill leaves in.
 
-- Lines per file: rank 26 of 28 is 160. Two files are above it and start on
-  the `debt` list of I-7: `src/mcp-server.ts` (264) and `scripts/run.sh`
-  (226). `tests/validate-sources.test.ts` is at 160, the limit itself.
-- Code files per folder: rank 7 of 7 is 8. No folder is above it. `tests/`
-  is at 8, the limit itself; `src/tools/` is at 5.
+- Lines per file: rank 26 of 28 is 160. Two files were above it and
+  started the `debt` list of I-7: `src/mcp-server.ts` (264) and
+  `scripts/run.sh` (226). `tests/validate-sources.test.ts` was at 160, the
+  limit itself.
+- Code files per folder: rank 7 of 7 is 8. No folder was above it. `tests/`
+  was at 8, the limit itself; `src/tools/` was at 5.
 
 `tests/` and `scripts/` are under the limits, with `scripts/run.sh` as
 known debt. A path leaves the `debt` list when it drops under the limit. A
@@ -197,5 +198,7 @@ new number needs an ADR.
 
 ## ADRs
 
-None accepted yet. An ADR goes to `docs/adr/NNNN-title.md` and into this
-index in the same commit.
+An ADR goes to `docs/adr/NNNN-title.md` and into this index in the same
+commit.
+
+- [0001 Check the shape of sources.yml at load, by hand](adr/0001-check-sources-yml-shape-at-load.md)

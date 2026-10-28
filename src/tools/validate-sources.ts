@@ -1,8 +1,14 @@
 import { loadSourcesConfig } from '../config.js';
 import { log } from '../logger.js';
-import type { SourcesConfig } from '../types.js';
+import type {
+  ReachabilityResult,
+  SourcesConfig,
+  SourcesValidation,
+} from '../types.js';
 
-export async function validateSources(path: string) {
+export async function validateSources(
+  path: string,
+): Promise<SourcesValidation> {
   let config: SourcesConfig;
   try {
     config = loadSourcesConfig(path);
@@ -58,27 +64,21 @@ export async function validateSources(path: string) {
   };
 }
 
-export interface ReachabilityResult {
-  type: 'rss' | 'github';
-  name: string;
-  status: 'ok' | 'failed' | 'unverifiable';
-  detail?: string;
-}
-
 export function validateStructure(config: SourcesConfig): string[] {
   const errors: string[] = [];
 
   const rssNames = new Set<string>();
   for (const [i, src] of config.rss.entries()) {
-    if (!src.name || src.name.trim() === '') {
-      errors.push(`rss[${i}]: empty name`);
+    // YAML gives a number for `name: 2024`, so check the type first.
+    if (typeof src.name !== 'string' || src.name.trim() === '') {
+      errors.push(`rss[${i}]: name must be a non-empty string`);
     } else if (rssNames.has(src.name)) {
       errors.push(`rss[${i}]: duplicate name "${src.name}"`);
     } else {
       rssNames.add(src.name);
     }
 
-    if (!src.url?.startsWith('http://') && !src.url?.startsWith('https://')) {
+    if (!/^https?:\/\//.test(src.url)) {
       errors.push(
         `rss[${i}] "${src.name}": url must start with http:// or https://`,
       );
