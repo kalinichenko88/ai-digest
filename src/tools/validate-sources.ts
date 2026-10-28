@@ -1,4 +1,49 @@
+import { loadSourcesConfig } from '../config.js';
+import { log } from '../logger.js';
 import type { SourcesConfig } from '../types.js';
+
+export async function validateSources(path: string) {
+  const config = loadSourcesConfig(path);
+  log('validation', 'Starting sources validation');
+
+  const structureErrors = validateStructure(config);
+  const reachability = await checkReachability(config);
+
+  let passed = 0;
+  let failed = 0;
+  let unverifiable = 0;
+  for (const r of reachability) {
+    if (r.status === 'ok') passed++;
+    else if (r.status === 'failed') failed++;
+    else unverifiable++;
+  }
+
+  log(
+    'validation',
+    `Sources validation: ${passed} passed, ${failed} failed, ${unverifiable} unable to verify`,
+  );
+
+  for (const r of reachability) {
+    if (r.status === 'failed') {
+      log('validation', `✗ ${r.type}: ${r.name} — ${r.detail}`);
+    } else if (r.status === 'unverifiable') {
+      log('validation', `⚠ ${r.type}: ${r.name} — unable to verify`);
+    }
+  }
+
+  if (structureErrors.length > 0) {
+    log('validation', `Structure errors: ${structureErrors.join('; ')}`);
+  }
+
+  return {
+    structure: {
+      valid: structureErrors.length === 0,
+      errors: structureErrors,
+    },
+    reachability,
+    summary: { passed, failed, unverifiable },
+  };
+}
 
 export interface ReachabilityResult {
   type: 'rss' | 'github';
