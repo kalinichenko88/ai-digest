@@ -35,6 +35,25 @@ github_releases:
   it('throws on missing file', () => {
     expect(() => loadSourcesConfig('/nonexistent/path.yml')).toThrow();
   });
+
+  it.each([
+    [
+      'rss: must be a list',
+      'github_releases:\n  repos:\n    - vercel/next.js\n',
+    ],
+    ['github_releases.repos: must be a list', 'rss: []\n'],
+    ['rss[0]: must be a mapping', 'rss:\n  -\ngithub_releases:\n  repos: []\n'],
+    ['rss: must be a list', ''],
+  ])('names "%s" instead of crashing (case %#)', (expected, yaml) => {
+    mkdirSync(TEST_DIR, { recursive: true });
+    writeFileSync(join(TEST_DIR, 'sources.yml'), yaml);
+
+    expect(() => loadSourcesConfig(join(TEST_DIR, 'sources.yml'))).toThrow(
+      expected,
+    );
+
+    rmSync(TEST_DIR, { recursive: true });
+  });
 });
 
 describe('loadDeliveryConfig', () => {

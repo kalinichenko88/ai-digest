@@ -3,7 +3,20 @@ import { log } from '../logger.js';
 import type { SourcesConfig } from '../types.js';
 
 export async function validateSources(path: string) {
-  const config = loadSourcesConfig(path);
+  let config: SourcesConfig;
+  try {
+    config = loadSourcesConfig(path);
+  } catch (err) {
+    // A file that does not load is the first thing this tool must report.
+    const message = err instanceof Error ? err.message : String(err);
+    log('validation', `Structure errors: ${message}`);
+
+    return {
+      structure: { valid: false, errors: [message] },
+      reachability: [],
+      summary: { passed: 0, failed: 0, unverifiable: 0 },
+    };
+  }
   log('validation', 'Starting sources validation');
 
   const structureErrors = validateStructure(config);

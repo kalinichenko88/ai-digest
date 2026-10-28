@@ -85,7 +85,7 @@ which uses `utils/`.
 | Role              | Where                                                                                                                                                                                        |
 | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Edge              | the tool handlers in `src/mcp-server.ts`; each `SKILL.md` in `.claude/skills/`; `scripts/run.sh`                                                                                             |
-| Check at the edge | the zod `inputSchema` of each tool in `src/mcp-server.ts`; the defaults in `src/config.ts` (it checks no shape: see _Cross-cutting concerns_)                                                |
+| Check at the edge | the zod `inputSchema` of each tool in `src/mcp-server.ts`; the defaults and the `sources.yml` shape check in `src/config.ts` (see _Cross-cutting concerns_)                                  |
 | Logic             | `src/tools/check-duplicates.ts`; `validateStructure` in `src/tools/validate-sources.ts`; `src/utils/`                                                                                        |
 | Data              | `src/tools/fetch-rss.ts`; `src/tools/fetch-github-releases.ts`; `src/tools/fetch-previous-urls.ts`; `checkReachability` in `src/tools/validate-sources.ts`; `src/config.ts`; `src/logger.ts` |
 
@@ -95,8 +95,9 @@ which uses `utils/`.
   optional `warnings`. A source that fails becomes a warning; the other
   sources still return. Fan-out uses `Promise.allSettled`.
 - Each tool function in `src/tools/` takes parsed config or a path as an
-  argument. `src/mcp-server.ts` loads the config on every tool call, so an
-  edit to `config/*.yml` takes effect on the next call, with no restart.
+  argument. The config is loaded on every tool call, by `src/mcp-server.ts`
+  or, for `validate_sources`, by `validateSources`, so an edit to
+  `config/*.yml` takes effect on the next call, with no restart.
 - Dates are local, not UTC. `toLocaleDateString('sv-SE')` gives
   `YYYY-MM-DD` in local time; a digest file name is the person's calendar
   day. For this, `.claude/settings.json` passes `TZ` and mounts
@@ -163,8 +164,12 @@ new number needs an ADR.
   `/app/config`, the mount of the install's `config/`. Only `src/config.ts`
   parses them. `delivery.yml` gets a default for every key in
   `src/config.ts`, so `run.sh update` does not merge it. `sources.yml` has
-  no defaults and no shape check at load: `loadSourcesConfig` casts the
-  parsed YAML. The `validate_sources` tool checks its structure on demand.
+  no defaults. `loadSourcesConfig` checks its shape at load: `rss` is a list
+  of mappings and `github_releases.repos` is a list. A wrong shape throws one
+  error that names each wrong part, so every tool fails with that message,
+  and `validate_sources` returns it as a structure error. The fields of each
+  entry are checked only by `validateStructure`, when `validate_sources`
+  runs: a bad field fails one source, not the call.
   `install.sh` writes `delivery.yml` and `.env`; `run.sh update` merges new
   sources into `sources.yml` with `yq` when `yq` is installed.
 - **Secrets.** `GITHUB_TOKEN` lives in `.env`, reaches the container through
