@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.1.8] - 2026-10-28
+
+### Fixed
+
+- A missing or malformed section in `sources.yml` no longer crashes every tool: loading
+  fails with one error that names each wrong part, and `validate_sources` reports it
+  as a structure error
+- The digest now has a blank line after each heading
+
+### Docs
+
+- `docs/ARCHITECTURE.md` with codemap, layers and invariants, plus ADR 0001 on checking
+  the shape of `sources.yml` at load
+
+### Improved
+
+- Docker base image moved to Node 26 (`node:26.12.0-alpine`)
+- Biome 2.6.3 now formats Markdown and YAML; lint-staged checks `.md` and `.yml` files
+
 ## [0.1.7] - 2026-09-24
 
 ### Improved
@@ -125,6 +144,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Configure import ordering and add `node:` prefix
 - Bump GitHub Actions to Node.js 22+ compatible versions
 
+[0.1.8]: https://github.com/kalinichenko88/ai-digest/compare/v0.1.7...v0.1.8
 [0.1.7]: https://github.com/kalinichenko88/ai-digest/compare/v0.1.6...v0.1.7
 [0.1.6]: https://github.com/kalinichenko88/ai-digest/compare/v0.1.5...v0.1.6
 [0.1.5]: https://github.com/kalinichenko88/ai-digest/compare/v0.1.4...v0.1.5
