@@ -43,7 +43,11 @@ github_releases:
     ],
     ['github_releases.repos: must be a list', 'rss: []\n'],
     ['rss[0]: must be a mapping', 'rss:\n  -\ngithub_releases:\n  repos: []\n'],
-    ['rss: must be a list', ''],
+    [
+      'rss[0]: must be a mapping',
+      'rss:\n  - https://hnrss.org/frontpage\ngithub_releases:\n  repos: []\n',
+    ],
+    ['rss: must be a list; github_releases.repos: must be a list', ''],
   ])('names "%s" instead of crashing (case %#)', (expected, yaml) => {
     mkdirSync(TEST_DIR, { recursive: true });
     writeFileSync(join(TEST_DIR, 'sources.yml'), yaml);

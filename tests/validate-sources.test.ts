@@ -16,17 +16,25 @@ vi.stubGlobal('fetch', mockFetch);
 
 describe('validateSources', () => {
   it('reports a missing rss section as a structure error', async () => {
-    const dir = mkdtempSync(join(tmpdir(), 'ai-digest-'));
-    const path = join(dir, 'sources.yml');
-    writeFileSync(path, 'github_releases:\n  repos:\n    - vercel/next.js\n');
-
-    const result = await validateSources(path);
-    rmSync(dir, { recursive: true });
+    const yaml = 'github_releases:\n  repos:\n    - vercel/next.js\n';
+    const result = await validateFile(yaml);
 
     expect(result.structure.valid).toBe(false);
     expect(result.structure.errors).toEqual([
       expect.stringContaining('rss: must be a list'),
     ]);
+  });
+
+  it('reports field errors and counts reachability for a file that loads', async () => {
+    mockFetch.mockResolvedValue({ ok: true, status: 200 });
+    const result = await validateFile(
+      "rss:\n  - name: ''\n    url: https://a.com\n    limit: 1\ngithub_releases:\n  repos: []\n",
+    );
+
+    expect(result.structure.errors).toEqual([
+      expect.stringContaining('name must be'),
+    ]);
+    expect(result.summary).toEqual({ passed: 1, failed: 0, unverifiable: 0 });
   });
 });
 
@@ -70,22 +78,18 @@ describe('checkReachability', () => {
 
   it('reports OK for 200 responses', async () => {
     mockFetch.mockResolvedValue({ ok: true, status: 200 });
-    const config: SourcesConfig = {
-      rss: [{ name: 'test', url: 'https://example.com/rss', limit: 10 }],
-      github_releases: { repos: [] },
-    };
-    const results = await checkReachability(config);
+    const results = await checkReachability(
+      sources([{ name: 'test', url: 'https://example.com/rss', limit: 10 }]),
+    );
     expect(results).toHaveLength(1);
     expect(results[0].status).toBe('ok');
   });
 
   it('reports failed for non-ok responses', async () => {
     mockFetch.mockResolvedValue({ ok: false, status: 404 });
-    const config: SourcesConfig = {
-      rss: [{ name: 'broken', url: 'https://example.com/404', limit: 10 }],
-      github_releases: { repos: [] },
-    };
-    const results = await checkReachability(config);
+    const results = await checkReachability(
+      sources([{ name: 'broken', url: 'https://example.com/404', limit: 10 }]),
+    );
     expect(results).toHaveLength(1);
     expect(results[0].status).toBe('failed');
     expect(results[0].detail).toContain('404');
@@ -93,22 +97,16 @@ describe('checkReachability', () => {
 
   it('reports failed for network errors', async () => {
     mockFetch.mockRejectedValue(new Error('ECONNREFUSED'));
-    const config: SourcesConfig = {
-      rss: [{ name: 'down', url: 'https://down.example.com', limit: 10 }],
-      github_releases: { repos: [] },
-    };
-    const results = await checkReachability(config);
+    const results = await checkReachability(
+      sources([{ name: 'down', url: 'https://down.example.com', limit: 10 }]),
+    );
     expect(results[0].status).toBe('failed');
     expect(results[0].detail).toContain('ECONNREFUSED');
   });
 
   it('checks github repos at github.com URL', async () => {
     mockFetch.mockResolvedValue({ ok: true, status: 200 });
-    const config: SourcesConfig = {
-      rss: [],
-      github_releases: { repos: ['owner/repo'] },
-    };
-    await checkReachability(config);
+    await checkReachability(sources([], ['owner/repo']));
     expect(mockFetch).toHaveBeenCalledWith(
       'https://github.com/owner/repo',
       expect.objectContaining({ method: 'HEAD' }),
@@ -121,31 +119,35 @@ describe('checkReachability', () => {
     mockFetch
       .mockResolvedValueOnce({ ok: false, status: 405 }) // HEAD rejected
       .mockResolvedValueOnce({ ok: true, status: 200 }); // GET succeeds
-    const config: SourcesConfig = {
-      rss: [
-        { name: 'head-reject', url: 'https://example.com/feed', limit: 10 },
-      ],
-      github_releases: { repos: [] },
-    };
-    const results = await checkReachability(config);
+    const results = await checkReachability(
+      sources([{ name: 'head', url: 'https://example.com/feed', limit: 10 }]),
+    );
     expect(results[0].status).toBe('ok');
     expect(mockFetch).toHaveBeenCalledTimes(2);
   });
 
   it('checks all sources in parallel', async () => {
     mockFetch.mockResolvedValue({ ok: true, status: 200 });
-    const config: SourcesConfig = {
-      rss: [
-        { name: 'a', url: 'https://a.com', limit: 5 },
-        { name: 'b', url: 'https://b.com', limit: 5 },
-      ],
-      github_releases: { repos: ['o/r'] },
-    };
-    const results = await checkReachability(config);
+    const rss = [
+      { name: 'a', url: 'https://a.com', limit: 5 },
+      { name: 'b', url: 'https://b.com', limit: 5 },
+    ];
+    const results = await checkReachability(sources(rss, ['o/r']));
     expect(results).toHaveLength(3);
   });
 });
 
-function sources(rss: RssSource[], repos: string[]): SourcesConfig {
+function sources(rss: RssSource[], repos: string[] = []): SourcesConfig {
   return { rss, github_releases: { repos } };
+}
+
+async function validateFile(yaml: string) {
+  const dir = mkdtempSync(join(tmpdir(), 'ai-digest-'));
+  const path = join(dir, 'sources.yml');
+  writeFileSync(path, yaml);
+  try {
+    return await validateSources(path);
+  } finally {
+    rmSync(dir, { recursive: true });
+  }
 }
