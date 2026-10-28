@@ -51,6 +51,10 @@ src/utils/                  pure string functions: normalize, similarity
 tests/                      vitest, one file per src file; fixtures/digests
 .claude/skills/             the pipeline and the user commands, as prompts
 .claude/settings.json       wires the MCP server: docker run with mounts
+.claude/CLAUDE.md           instructions for work on this repo; not shipped
+CLAUDE.md                   the reader's context: stack, interests, topics
+                            to ignore; the ai-digest skill reads it, and the
+                            archive ships it as a template
 config/                     sources.yml, delivery.yml
 scripts/                    run.sh (launcher and updater), install.sh,
                             build-archive.sh
