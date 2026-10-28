@@ -169,7 +169,7 @@ npm test
 npm run test:watch
 
 # Lint and format
-npx @biomejs/biome check --write src/
+npx @biomejs/biome check --write
 ```
 
 ### Releasing
