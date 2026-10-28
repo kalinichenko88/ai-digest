@@ -67,13 +67,13 @@ Dockerfile                  two stages: build, then dist + config
 The areas live in file names, not in folders: `src/tools/` holds files of
 two areas. Folders are by kind (`tools/`, `utils/`).
 
-| Area | Files | Public API |
-| --- | --- | --- |
-| Pipeline | `.claude/skills/ai-digest/` | the skill name; it uses the server only through the tool names that `src/mcp-server.ts` registers |
-| Sources | `src/tools/fetch-rss.ts`, `src/tools/fetch-github-releases.ts`, `src/tools/validate-sources.ts`, `config/sources.yml`, `.claude/skills/add-source/`, `.claude/skills/validate-sources/` | the exported functions of each tool file; `src/mcp-server.ts` is their only importer |
-| Dedup | `src/tools/fetch-previous-urls.ts`, `src/tools/check-duplicates.ts`, `src/utils/`, the `deduplication` block of `config/delivery.yml` | the same rule |
-| Server | `src/mcp-server.ts`, `src/config.ts`, `src/logger.ts`, `src/types.ts` | the MCP tool names and their JSON shapes, which `src/types.ts` states |
-| Distribution | `Dockerfile`, `scripts/`, `.claude/settings.json`, `.github/workflows/ci.yml`, `.claude/skills/release/` | `install.sh`, `run.sh`, `run.sh update` |
+| Area         | Files                                                                                                                                                                                   | Public API                                                                                        |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| Pipeline     | `.claude/skills/ai-digest/`                                                                                                                                                             | the skill name; it uses the server only through the tool names that `src/mcp-server.ts` registers |
+| Sources      | `src/tools/fetch-rss.ts`, `src/tools/fetch-github-releases.ts`, `src/tools/validate-sources.ts`, `config/sources.yml`, `.claude/skills/add-source/`, `.claude/skills/validate-sources/` | the exported functions of each tool file; `src/mcp-server.ts` is their only importer              |
+| Dedup        | `src/tools/fetch-previous-urls.ts`, `src/tools/check-duplicates.ts`, `src/utils/`, the `deduplication` block of `config/delivery.yml`                                                   | the same rule                                                                                     |
+| Server       | `src/mcp-server.ts`, `src/config.ts`, `src/logger.ts`, `src/types.ts`                                                                                                                   | the MCP tool names and their JSON shapes, which `src/types.ts` states                             |
+| Distribution | `Dockerfile`, `scripts/`, `.claude/settings.json`, `.github/workflows/ci.yml`, `.claude/skills/release/`                                                                                | `install.sh`, `run.sh`, `run.sh update`                                                           |
 
 Dependencies point one way: `mcp-server.ts` → `tools/` → `utils/` and
 `types.ts`. `config.ts` and `logger.ts` are leaves that any file may import.
@@ -82,12 +82,12 @@ which uses `utils/`.
 
 ## Layers
 
-| Role | Where |
-| --- | --- |
-| Edge | the tool handlers in `src/mcp-server.ts`; each `SKILL.md` in `.claude/skills/`; `scripts/run.sh` |
-| Check at the edge | the zod `inputSchema` of each tool in `src/mcp-server.ts`; the defaults in `src/config.ts` (it checks no shape: see *Cross-cutting concerns*) |
-| Logic | `src/tools/check-duplicates.ts`; `validateStructure` in `src/tools/validate-sources.ts`; `src/utils/` |
-| Data | `src/tools/fetch-rss.ts`; `src/tools/fetch-github-releases.ts`; `src/tools/fetch-previous-urls.ts`; `checkReachability` in `src/tools/validate-sources.ts`; `src/config.ts`; `src/logger.ts` |
+| Role              | Where                                                                                                                                                                                        |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Edge              | the tool handlers in `src/mcp-server.ts`; each `SKILL.md` in `.claude/skills/`; `scripts/run.sh`                                                                                             |
+| Check at the edge | the zod `inputSchema` of each tool in `src/mcp-server.ts`; the defaults in `src/config.ts` (it checks no shape: see _Cross-cutting concerns_)                                                |
+| Logic             | `src/tools/check-duplicates.ts`; `validateStructure` in `src/tools/validate-sources.ts`; `src/utils/`                                                                                        |
+| Data              | `src/tools/fetch-rss.ts`; `src/tools/fetch-github-releases.ts`; `src/tools/fetch-previous-urls.ts`; `checkReachability` in `src/tools/validate-sources.ts`; `src/config.ts`; `src/logger.ts` |
 
 ## Patterns
 

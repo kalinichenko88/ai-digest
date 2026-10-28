@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.5.14/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.6.3/schema.json",
   "vcs": {
     "enabled": true,
     "clientKind": "git",
@@ -16,6 +16,14 @@
   "javascript": {
     "formatter": {
       "quoteStyle": "single"
+    }
+  },
+  "markdown": {
+    "parser": {
+      "frontmatter": true
+    },
+    "formatter": {
+      "formatEmbeds": false
     }
   },
   "assist": {
@@ -35,6 +43,11 @@
           }
         }
       }
+    }
+  },
+  "yaml": {
+    "formatter": {
+      "quoteStyle": "single"
     }
   }
 }

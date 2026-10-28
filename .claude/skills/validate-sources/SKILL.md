@@ -18,6 +18,7 @@ Call the `validate_sources` MCP tool (no arguments).
 Format the JSON response as a structured report:
 
 ### If structure has errors:
+
 ```
 ## Sources Validation Report
 
@@ -27,6 +28,7 @@ Format the JSON response as a structured report:
 ```
 
 ### URL check results:
+
 ```
 ### URL Checks (N sources)
 ✓ rss: name — OK

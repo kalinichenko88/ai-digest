@@ -43,7 +43,7 @@ Log: `Step 1: Config loaded (X RSS sources, Y GitHub repos)`
 ## Step 2: Read Previous Digests (for deduplication)
 
 Call the `fetch_previous_urls` MCP tool (no parameters).
-It reads the last 3 days of digest markdown files from the output path and returns all previously published URLs and titles.
+It reads the last `window_days` days (`config/delivery.yml`) of digest markdown files from the output path and returns all previously published URLs and titles.
 
 Save the returned entries — you will use them for semantic deduplication in Step 4.
 
@@ -64,6 +64,7 @@ Log: `Step 3: Collected X RSS items (Y sources) + Z GitHub releases`
 ## Step 4: Deduplicate
 
 ### 4a: Programmatic cross-day deduplication
+
 Call the `check_duplicates` MCP tool with all collected items from Step 3.
 Pass items as: `{ "items": [{ "title": "...", "url": "...", "source": "..." }, ...] }`
 
@@ -73,16 +74,19 @@ The tool returns each item classified as `exact_duplicate`, `likely_duplicate`, 
 - Items marked `unique` — keep as-is.
 
 ### 4b: Review likely duplicates
+
 For each `likely_duplicate` item, compare with the `matched_with` entry:
 - If the item contains **substantially new information** (new version, breaking change, new analysis, different perspective) — KEEP it.
 - If it covers the same topic without new information — REMOVE it.
 - When in doubt — REMOVE. Fresh content over repeats.
 
 ### 4c: Semantic deduplication (your judgment)
+
 Review remaining `unique` items against the entries returned in Step 2.
 If you notice a topic that was already covered in a previous digest and the new item adds nothing substantial — remove it.
 
 ### 4d: Within-day deduplication
+
 Among the remaining items:
 - Merge items with identical URLs from different sources into one entry
 - Merge items with very similar titles about the same topic into one entry
@@ -134,19 +138,24 @@ items: <total items after dedup>
 <intro paragraph>
 
 ## 🔥 Hot
+
 - **<catchy headline>** — <summary>. [<source>](url)
 
 ## 🎯 <"Relevant to Your Projects" in configured language>
+
 - **<catchy headline>** — <summary>. [<source>](url)
   _<relevance note>_
 
 ## 🤖 AI / LLM
+
 - **<catchy headline>** — <summary>. [<source>](url)
 
 ## ⚛️ Frontend
+
 - ...
 
 ## 🔧 DevTools / Releases
+
 - ...
 ```
 
@@ -162,6 +171,8 @@ Before the categorized sections, write a narrative intro (2–4 short paragraphs
 - **Break into short paragraphs** (1–2 sentences each) for easy scanning — avoid walls of text
 
 The **Hot** category is mandatory and must always be present. Skip any other category that has zero items.
+
+Put one blank line after every heading, as the template shows.
 
 ## Step 8: Write File
 
