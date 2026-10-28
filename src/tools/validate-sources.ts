@@ -1,10 +1,67 @@
-import type { SourcesConfig } from '../types.js';
+import { loadSourcesConfig } from '../config.js';
+import { log } from '../logger.js';
+import type {
+  ReachabilityResult,
+  SourcesConfig,
+  SourcesValidation,
+} from '../types.js';
 
-export interface ReachabilityResult {
-  type: 'rss' | 'github';
-  name: string;
-  status: 'ok' | 'failed' | 'unverifiable';
-  detail?: string;
+export async function validateSources(
+  path: string,
+): Promise<SourcesValidation> {
+  let config: SourcesConfig;
+  try {
+    config = loadSourcesConfig(path);
+  } catch (err) {
+    // A file that does not load is the first thing this tool must report.
+    const message = err instanceof Error ? err.message : String(err);
+    log('validation', `Structure errors: ${message}`);
+
+    return {
+      structure: { valid: false, errors: [message] },
+      reachability: [],
+      summary: { passed: 0, failed: 0, unverifiable: 0 },
+    };
+  }
+  log('validation', 'Starting sources validation');
+
+  const structureErrors = validateStructure(config);
+  const reachability = await checkReachability(config);
+
+  let passed = 0;
+  let failed = 0;
+  let unverifiable = 0;
+  for (const r of reachability) {
+    if (r.status === 'ok') passed++;
+    else if (r.status === 'failed') failed++;
+    else unverifiable++;
+  }
+
+  log(
+    'validation',
+    `Sources validation: ${passed} passed, ${failed} failed, ${unverifiable} unable to verify`,
+  );
+
+  for (const r of reachability) {
+    if (r.status === 'failed') {
+      log('validation', `✗ ${r.type}: ${r.name} — ${r.detail}`);
+    } else if (r.status === 'unverifiable') {
+      log('validation', `⚠ ${r.type}: ${r.name} — unable to verify`);
+    }
+  }
+
+  if (structureErrors.length > 0) {
+    log('validation', `Structure errors: ${structureErrors.join('; ')}`);
+  }
+
+  return {
+    structure: {
+      valid: structureErrors.length === 0,
+      errors: structureErrors,
+    },
+    reachability,
+    summary: { passed, failed, unverifiable },
+  };
 }
 
 export function validateStructure(config: SourcesConfig): string[] {
@@ -12,15 +69,16 @@ export function validateStructure(config: SourcesConfig): string[] {
 
   const rssNames = new Set<string>();
   for (const [i, src] of config.rss.entries()) {
-    if (!src.name || src.name.trim() === '') {
-      errors.push(`rss[${i}]: empty name`);
+    // YAML gives a number for `name: 2024`, so check the type first.
+    if (typeof src.name !== 'string' || src.name.trim() === '') {
+      errors.push(`rss[${i}]: name must be a non-empty string`);
     } else if (rssNames.has(src.name)) {
       errors.push(`rss[${i}]: duplicate name "${src.name}"`);
     } else {
       rssNames.add(src.name);
     }
 
-    if (!src.url?.startsWith('http://') && !src.url?.startsWith('https://')) {
+    if (!/^https?:\/\//.test(src.url)) {
       errors.push(
         `rss[${i}] "${src.name}": url must start with http:// or https://`,
       );

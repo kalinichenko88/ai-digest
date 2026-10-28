@@ -85,8 +85,8 @@ which uses `utils/`.
 | Role              | Where                                                                                                                                                                                        |
 | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Edge              | the tool handlers in `src/mcp-server.ts`; each `SKILL.md` in `.claude/skills/`; `scripts/run.sh`                                                                                             |
-| Check at the edge | the zod `inputSchema` of each tool in `src/mcp-server.ts`; the defaults in `src/config.ts` (it checks no shape: see _Cross-cutting concerns_)                                                |
-| Logic             | `src/tools/check-duplicates.ts`; `validateStructure` in `src/tools/validate-sources.ts`; `src/utils/`                                                                                        |
+| Check at the edge | the zod `inputSchema` of each tool in `src/mcp-server.ts`; the defaults and the `sources.yml` shape check in `src/config.ts` (see _Cross-cutting concerns_)                                  |
+| Logic             | `src/tools/check-duplicates.ts`; `validateSources` and `validateStructure` in `src/tools/validate-sources.ts`; `src/utils/`                                                                  |
 | Data              | `src/tools/fetch-rss.ts`; `src/tools/fetch-github-releases.ts`; `src/tools/fetch-previous-urls.ts`; `checkReachability` in `src/tools/validate-sources.ts`; `src/config.ts`; `src/logger.ts` |
 
 ## Patterns
@@ -95,8 +95,9 @@ which uses `utils/`.
   optional `warnings`. A source that fails becomes a warning; the other
   sources still return. Fan-out uses `Promise.allSettled`.
 - Each tool function in `src/tools/` takes parsed config or a path as an
-  argument. `src/mcp-server.ts` loads the config on every tool call, so an
-  edit to `config/*.yml` takes effect on the next call, with no restart.
+  argument. The config is loaded on every tool call, by `src/mcp-server.ts`
+  or, for `validate_sources`, by `validateSources`, so an edit to
+  `config/*.yml` takes effect on the next call, with no restart.
 - Dates are local, not UTC. `toLocaleDateString('sv-SE')` gives
   `YYYY-MM-DD` in local time; a digest file name is the person's calendar
   day. For this, `.claude/settings.json` passes `TZ` and mounts
@@ -146,11 +147,12 @@ The limits come from the project's own sizes on 2026-10-28: the 90th
 percentile by nearest rank, over the 28 code files and 7 folders that
 `data.ere` of the debt skill leaves in.
 
-- Lines per file: rank 26 of 28 is 160. Two files are above it and start on
-  the `debt` list of I-7: `src/mcp-server.ts` (264) and `scripts/run.sh`
-  (226). `tests/validate-sources.test.ts` is at 160, the limit itself.
-- Code files per folder: rank 7 of 7 is 8. No folder is above it. `tests/`
-  is at 8, the limit itself; `src/tools/` is at 5.
+- Lines per file: rank 26 of 28 is 160. Two files were above it and
+  started the `debt` list of I-7: `src/mcp-server.ts` (264) and
+  `scripts/run.sh` (226). `tests/validate-sources.test.ts` was at 160, the
+  limit itself.
+- Code files per folder: rank 7 of 7 is 8. No folder was above it. `tests/`
+  was at 8, the limit itself; `src/tools/` was at 5.
 
 `tests/` and `scripts/` are under the limits, with `scripts/run.sh` as
 known debt. A path leaves the `debt` list when it drops under the limit. A
@@ -163,8 +165,12 @@ new number needs an ADR.
   `/app/config`, the mount of the install's `config/`. Only `src/config.ts`
   parses them. `delivery.yml` gets a default for every key in
   `src/config.ts`, so `run.sh update` does not merge it. `sources.yml` has
-  no defaults and no shape check at load: `loadSourcesConfig` casts the
-  parsed YAML. The `validate_sources` tool checks its structure on demand.
+  no defaults. `loadSourcesConfig` checks its shape at load: `rss` is a list
+  of mappings and `github_releases.repos` is a list. A wrong shape throws one
+  error that names each wrong part, so every tool fails with that message,
+  and `validate_sources` returns it as a structure error. The fields of each
+  entry are checked only by `validateStructure`, when `validate_sources`
+  runs: a bad field fails one source, not the call.
   `install.sh` writes `delivery.yml` and `.env`; `run.sh update` merges new
   sources into `sources.yml` with `yq` when `yq` is installed.
 - **Secrets.** `GITHUB_TOKEN` lives in `.env`, reaches the container through
@@ -192,5 +198,7 @@ new number needs an ADR.
 
 ## ADRs
 
-None accepted yet. An ADR goes to `docs/adr/NNNN-title.md` and into this
-index in the same commit.
+An ADR goes to `docs/adr/NNNN-title.md` and into this index in the same
+commit.
+
+- [0001 Check the shape of sources.yml at load, by hand](adr/0001-check-sources-yml-shape-at-load.md)

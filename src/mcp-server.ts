@@ -13,10 +13,7 @@ import { classifyItems } from './tools/check-duplicates.js';
 import { fetchGithubReleases } from './tools/fetch-github-releases.js';
 import { fetchPreviousUrls } from './tools/fetch-previous-urls.js';
 import { fetchAllRss, fetchRss } from './tools/fetch-rss.js';
-import {
-  checkReachability,
-  validateStructure,
-} from './tools/validate-sources.js';
+import { validateSources } from './tools/validate-sources.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const CONFIG_DIR = join(__dirname, '..', 'config');
@@ -136,46 +133,7 @@ server.registerTool(
       'Validate sources.yml structure and check that all source URLs are reachable',
   },
   async () => {
-    const config = loadSourcesConfig(join(CONFIG_DIR, 'sources.yml'));
-    log('validation', 'Starting sources validation');
-
-    const structureErrors = validateStructure(config);
-    const reachability = await checkReachability(config);
-
-    let passed = 0;
-    let failed = 0;
-    let unverifiable = 0;
-    for (const r of reachability) {
-      if (r.status === 'ok') passed++;
-      else if (r.status === 'failed') failed++;
-      else unverifiable++;
-    }
-
-    log(
-      'validation',
-      `Sources validation: ${passed} passed, ${failed} failed, ${unverifiable} unable to verify`,
-    );
-
-    for (const r of reachability) {
-      if (r.status === 'failed') {
-        log('validation', `✗ ${r.type}: ${r.name} — ${r.detail}`);
-      } else if (r.status === 'unverifiable') {
-        log('validation', `⚠ ${r.type}: ${r.name} — unable to verify`);
-      }
-    }
-
-    if (structureErrors.length > 0) {
-      log('validation', `Structure errors: ${structureErrors.join('; ')}`);
-    }
-
-    return jsonResponse({
-      structure: {
-        valid: structureErrors.length === 0,
-        errors: structureErrors,
-      },
-      reachability,
-      summary: { passed, failed, unverifiable },
-    });
+    return jsonResponse(await validateSources(join(CONFIG_DIR, 'sources.yml')));
   },
 );
 
