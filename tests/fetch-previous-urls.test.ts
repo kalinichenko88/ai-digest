@@ -93,7 +93,8 @@ describe('the digest template of the ai-digest skill', () => {
       join(import.meta.dirname, '..', '.claude/skills/ai-digest/SKILL.md'),
       'utf-8',
     );
-    const lines = skill.split('```markdown\n')[1].split('\n```')[0].split('\n');
+    const step7 = skill.split('## Step 7')[1];
+    const lines = step7.split('```markdown\n')[1].split('\n```')[0].split('\n');
     const glued = lines.filter((l, i) => l.startsWith('#') && lines[i + 1]);
     expect(glued).toEqual([]);
   });
