@@ -108,6 +108,9 @@ which uses `utils/`.
 - Each `.test.ts` in `tests/` tests one `src/` file and mocks at the
   boundary: `vi.mock('rss-parser')`, `vi.stubGlobal('fetch')`. The config
   tests write real files under `tests/fixtures/config/` and delete them.
+  One exception: `tests/fetch-previous-urls.test.ts` also checks the
+  Step 7 digest template of the `ai-digest` skill, which shapes the files
+  that module reads back.
 
 ## Invariants
 
