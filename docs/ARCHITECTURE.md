@@ -69,6 +69,8 @@ tests/                      vitest, one file per src file; fixtures/digests
   scripts/run.test.ts       run.sh update, whole, from a real archive
   scripts/run-launch.test.ts  the launcher: the mount of output_path, the
                             download of .mcp.json, exits 3 and 4
+  scripts/install.test.ts   install.sh: the image of .version, with the
+                            archive unpacked or downloaded
 .claude/skills/             the pipeline and the user commands, as prompts
 .mcp.json                   wires the MCP server: docker run with mounts;
                             Claude Code reads project servers from this
@@ -147,18 +149,23 @@ which uses `utils/`.
   tests write real files under `tests/fixtures/config/` and delete them.
   Two exceptions: `tests/fetch-previous-urls.test.ts` also checks the
   Step 7 digest template of the `ai-digest` skill, which shapes the files
-  that module reads back. `tests/scripts/` tests `scripts/run.sh` and
-  `scripts/apply-update.sh`, one file per job. `apply-update.test.ts` runs
-  the `sources.yml` merge of `scripts/apply-update.sh` with the Go `yq`, and
-  checks that the Python `yq` (`pip install yq`) skips the merge. It runs in
-  CI, which installs both. Locally, each case runs only where its `yq` is:
-  the Go one on `PATH`, the Python one by its path in `PYTHON_YQ`.
+  that module reads back. `tests/scripts/` tests `scripts/run.sh`,
+  `scripts/apply-update.sh` and `scripts/install.sh`, one file per job.
+  `apply-update.test.ts` runs the `sources.yml` merge of
+  `scripts/apply-update.sh` with the Go `yq`, and checks that the Python
+  `yq` (`pip install yq`) skips the merge. It runs in CI, which installs
+  both. Locally, each case runs only where its `yq` is: the Go one on
+  `PATH`, the Python one by its path in `PYTHON_YQ`.
   `run-launch.test.ts` runs the launcher with a stub `claude`, and expands
   the `docker run` arguments of `.mcp.json` with the environment that
   `claude` got. `run.test.ts` builds the release archive with
   `build-archive.sh` and runs `run.sh update` on it, with stubs for `curl`,
   `gh`, `docker` and `claude`. It checks the installed files, the image tag,
   the deleted download, and that the launcher does not start.
+  `install.test.ts` runs `install.sh` in an unpacked archive, and in an
+  empty folder where a stub `curl` serves the archive; a stub `docker`
+  records the pull. The questions of `install.sh` read `/dev/tty`, so the
+  test runs a copy of the script that reads its answers from a file.
 
 ## Invariants
 
@@ -247,7 +254,11 @@ new number needs an ADR.
   dedup window. The container gets `TZ` and `/etc/localtime`.
 - **Version.** `.version`, `package.json` and `README.md` carry it; the
   `release` skill bumps all three. The server reads `package.json` at start
-  for its MCP server version.
+  for its MCP server version. `install.sh` pulls the image by the version
+  of `.version`, then tags that image `:latest`, the tag that `.mcp.json`
+  runs. It does not pull `:latest`: CI moves that tag before it publishes
+  the release. With no version in `.version`, `install.sh` stops before its
+  questions.
 
 ## ADRs
 

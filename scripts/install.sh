@@ -2,6 +2,7 @@
 set -euo pipefail
 
 REPO="kalinichenko88/ai-digest"
+IMAGE="ghcr.io/${REPO}"
 BOLD='\033[1m'
 GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
@@ -31,6 +32,13 @@ if [ ! -f ".version" ]; then
   curl -sL "${RELEASE_URL}" | tar -xz
   cd ai-digest
   info "Downloaded and unpacked"
+fi
+
+# The release of these files, in both modes: its image is the one to pull
+VERSION="$(cat .version 2>/dev/null || true)"
+if [ -z "${VERSION}" ]; then
+  error "No version in .version. Download the release again: https://github.com/${REPO}/releases"
+  exit 1
 fi
 
 # --- Check dependencies ---
@@ -85,11 +93,14 @@ else
   info ".env created from template"
 fi
 
-# --- Pull Docker image ---
+# --- Pull the Docker image of this release ---
+# By the version tag: CI moves :latest before it publishes the release.
 echo ""
 if command -v docker &>/dev/null; then
-  echo "Pulling Docker image..."
-  docker pull "ghcr.io/${REPO}:latest"
+  echo "Pulling Docker image ${IMAGE}:${VERSION}..."
+  docker pull "${IMAGE}:${VERSION}"
+  # .mcp.json runs :latest: move it to the image of this release, with the files
+  docker tag "${IMAGE}:${VERSION}" "${IMAGE}:latest"
   info "Docker image pulled"
 else
   warn "Skipping Docker pull (docker not found)"
