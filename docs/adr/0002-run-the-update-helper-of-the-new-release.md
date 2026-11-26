@@ -3,6 +3,10 @@
 - Status: accepted
 - Date: 2026-11-26
 
+## Updates
+
+- 2026-11-26 #45: Consequences. Was: "has 4 lines of room under I-7, and the last four fixes to it added 5, 1, 8 and 16 lines".
+
 ## Context
 
 `run.sh update` downloads the latest release and installs it with a helper:
@@ -48,9 +52,9 @@ the four arguments and runs on bash 3.2, the bash of macOS. A release that
 breaks one of them stops `run.sh update`. The check and the download stay in
 `run.sh`, so a change to them still reaches an install one update late. The
 first update from v0.1.8 or older still runs the old heredoc; only the
-update after it runs the helper of the new release. `scripts/run.sh` has 4
-lines of room under I-7, and the last four fixes to it added 5, 1, 8 and 16
-lines. `run.sh update` runs code of the downloaded release at once; before,
+update after it runs the helper of the new release. `scripts/run.sh` has 3
+lines of room under I-7, and the last five fixes to it added 5, 1, 8, 16
+and 1 lines. `run.sh update` runs code of the downloaded release at once; before,
 the next run of the copied `run.sh` ran it, so the update trusts the
 release no more than before.
 

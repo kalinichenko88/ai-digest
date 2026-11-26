@@ -164,8 +164,8 @@ which uses `utils/`.
   the deleted download, that the launcher does not start, and the message
   when the call for the latest release fails.
   `install.test.ts` runs `install.sh` in an unpacked archive, and in an
-  empty folder where a stub `curl` serves the archive or fails; a stub
-  `docker` records the pull. The questions of `install.sh` read `/dev/tty`, so the
+  empty folder where a stub `curl` serves the archive or fails; a stub `docker`
+  records the pull. The questions of `install.sh` read `/dev/tty`, so the
   test runs a copy of the script that reads its answers from a file.
 
 ## Invariants
