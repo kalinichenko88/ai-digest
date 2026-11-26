@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import {
+  fetchPreviousUrls,
   getDigestFiles,
   parseDigestMarkdown,
 } from '../src/tools/fetch-previous-urls.js';
@@ -84,6 +85,17 @@ describe('getDigestFiles', () => {
     const d = new Date(2026, 3, 5, 17, 32, 14);
     expect(d.toLocaleDateString('sv-SE')).toBe('2026-04-05');
     expect(d.toLocaleString('sv-SE').slice(0, 16)).toBe('2026-04-05 17:32');
+  });
+});
+
+describe('fetchPreviousUrls', () => {
+  it('warns only when the digest folder cannot be read', () => {
+    const missing = join(FIXTURES_DIR, 'missing');
+
+    expect(fetchPreviousUrls(missing, 3).warnings).toEqual([
+      expect.stringContaining(missing),
+    ]);
+    expect(fetchPreviousUrls(FIXTURES_DIR, 3).warnings).toBeUndefined();
   });
 });
 

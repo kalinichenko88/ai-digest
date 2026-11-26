@@ -14,13 +14,14 @@ the judgment work itself: filter by the person's interests, categorize,
 summarize, write the Markdown file, notify.
 
 The MCP server is one Node process over stdio. It normally runs in Docker:
-`.claude/settings.json` starts `docker run` with the install's `config/` and
-`logs/` folders mounted into the container.
+`.claude/settings.json` starts `docker run` with the install's `config/`
+(read-only) and `logs/` folders mounted into the container, and the digest folder of
+`output_path`, read-only, at its host path.
 
 Data flow of one run:
 
-1. `scripts/run.sh` starts `claude -p "Run ai-digest skill"` and tails
-   `logs/YYYY-MM-DD.md`.
+1. `scripts/run.sh` exports `output_path` for the mount, starts
+   `claude -p "Run ai-digest skill"` and tails `logs/YYYY-MM-DD.md`.
 2. The skill calls `validate_sources`, then `fetch_previous_urls`, then
    `fetch_all_rss` and `fetch_github_releases`, then `check_duplicates`.
 3. Each tool reads `config/sources.yml` or `config/delivery.yml` on that
@@ -50,6 +51,7 @@ src/tools/                  one file per tool capability
 src/utils/                  pure string functions: normalize, similarity
 tests/                      vitest, one file per src file; fixtures/digests
   scripts/run.test.ts       the sources.yml merge of run.sh update, with yq
+  scripts/run-launch.test.ts  the mount of output_path that run.sh sets up
 .claude/skills/             the pipeline and the user commands, as prompts
 .claude/settings.json       wires the MCP server: docker run with mounts
 .claude/CLAUDE.md           instructions for work on this repo; not shipped
@@ -92,9 +94,12 @@ which uses `utils/`.
 
 ## Patterns
 
-- Each `fetch-*.ts` in `src/tools/` returns `ToolResult`: `items` and an
-  optional `warnings`. A source that fails becomes a warning; the other
-  sources still return. Fan-out uses `Promise.allSettled`.
+- Each `fetch-*.ts` in `src/tools/` that fetches sources returns
+  `ToolResult`: `items` and an optional `warnings`. A source that fails
+  becomes a warning; the other sources still return. Fan-out uses
+  `Promise.allSettled`. `fetch-previous-urls.ts` returns
+  `PreviousDigestResult`, with an optional `warnings` when it cannot read
+  the digest folder.
 - Each tool function in `src/tools/` takes parsed config or a path as an
   argument. The config is loaded on every tool call, by `src/mcp-server.ts`
   or, for `validate_sources`, by `validateSources`, so an edit to
@@ -103,6 +108,15 @@ which uses `utils/`.
   `YYYY-MM-DD` in local time; a digest file name is the person's calendar
   day. For this, `.claude/settings.json` passes `TZ` and mounts
   `/etc/localtime` into the container.
+- The container sees the digest folder at its host path. `scripts/run.sh`
+  exports `output_path`, with `~` expanded, as `AI_DIGEST_OUTPUT` and
+  creates the folder. `.claude/settings.json` mounts it read-only at the
+  same path and passes `HOME`, so the server expands an `output_path` that
+  starts with `~/` or `/` to the same path as on the host. A relative
+  `output_path` resolves against `/app` in the container and misses the
+  mount. A run that `run.sh` did not start mounts
+  `./config` at a path that the server does not read: `fetch_previous_urls`
+  then returns a warning, not a silent empty list.
 - Each network call carries a timeout of 10 to 15 seconds: `AbortSignal.timeout`
   on `fetch`, `timeout` on the RSS parser.
 - `src/logger.ts` is silent under vitest (`process.env.VITEST`), so a test
@@ -112,12 +126,14 @@ which uses `utils/`.
   tests write real files under `tests/fixtures/config/` and delete them.
   Two exceptions: `tests/fetch-previous-urls.test.ts` also checks the
   Step 7 digest template of the `ai-digest` skill, which shapes the files
-  that module reads back. `tests/scripts/run.test.ts` tests a script: it
-  runs the `sources.yml` merge of the update helper in `scripts/run.sh`
-  with the Go `yq`, and checks that the Python `yq` (`pip install yq`)
-  skips the merge. It runs in CI, which installs both. Locally, each case
-  runs only where its `yq` is: the Go one on `PATH`, the Python one by its
-  path in `PYTHON_YQ`.
+  that module reads back. `tests/scripts/` tests `scripts/run.sh`, one file
+  per job of the script. `run.test.ts` runs the `sources.yml` merge of the
+  update helper with the Go `yq`, and checks that the Python `yq`
+  (`pip install yq`) skips the merge. It runs in CI, which installs both.
+  Locally, each case runs only where its `yq` is: the Go one on `PATH`, the
+  Python one by its path in `PYTHON_YQ`. `run-launch.test.ts` runs the
+  launcher with a stub `claude`, and expands the `docker run` arguments of
+  `.claude/settings.json` with the environment that `claude` got.
 
 ## Invariants
 
@@ -168,8 +184,10 @@ new number needs an ADR.
 
 - **Config.** Two files, `config/sources.yml` and `config/delivery.yml`.
   `src/mcp-server.ts` resolves `config/` next to `dist/`; in Docker that is
-  `/app/config`, the mount of the install's `config/`. Only `src/config.ts`
-  parses them. `delivery.yml` gets a default for every key in
+  `/app/config`, the mount of the install's `config/`. In `src/`, only
+  `src/config.ts` parses them. `scripts/run.sh` reads `output_path` from
+  `delivery.yml` with `sed`, with the same default `~/digests`, for the
+  mount of the digest folder. `delivery.yml` gets a default for every key in
   `src/config.ts`, so `run.sh update` does not merge it. `sources.yml` has
   no defaults. `loadSourcesConfig` checks its shape at load: `rss` is a list
   of mappings and `github_releases.repos` is a list. A wrong shape throws one
