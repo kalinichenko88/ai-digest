@@ -136,10 +136,10 @@ CLAUDE_PID=$!
 tail -f "$LOG_FILE" &
 TAIL_PID=$!
 
-# Wait for Claude to finish, then stop tail
-wait $CLAUDE_PID
-EXIT_CODE=$?
-kill $TAIL_PID 2>/dev/null
+# Wait for Claude, then stop tail. With ||, a failure of either does not end the run.
+EXIT_CODE=0
+wait $CLAUDE_PID || EXIT_CODE=$?
+kill $TAIL_PID 2>/dev/null || true
 
 END_TIME=$(date +%s)
 ELAPSED=$(( END_TIME - START_TIME ))
