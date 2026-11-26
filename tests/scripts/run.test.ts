@@ -10,10 +10,12 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
-import { parse } from 'yaml';
+
+import { loadSourcesConfig } from '../../src/config.js';
 
 const ROOT = join(import.meta.dirname, '..', '..');
-const DEFAULT_SOURCES = readFileSync(join(ROOT, 'config/sources.yml'), 'utf8');
+const DEFAULT_SOURCES_PATH = join(ROOT, 'config', 'sources.yml');
+const DEFAULT_SOURCES = readFileSync(DEFAULT_SOURCES_PATH, 'utf8');
 
 // CI has yq. Without it, run.sh skips the merge, so the test can only run locally with yq.
 const hasYq = spawnSync('yq', ['--version']).status === 0;
@@ -29,7 +31,7 @@ describe.skipIf(!hasYq && !process.env.CI)(
         '    - tailwindlabs/tailwindcss\n',
         '    - tailwindlabs/tailwindcss\n    - biomejs/biome\n',
       );
-      const installed = parse(DEFAULT_SOURCES);
+      const installed = loadSourcesConfig(DEFAULT_SOURCES_PATH);
 
       const { output, merged } = runMerge(released, DEFAULT_SOURCES);
 
@@ -38,7 +40,7 @@ describe.skipIf(!hasYq && !process.env.CI)(
         'biomejs/biome',
       ]);
       expect(merged.rss).toHaveLength(installed.rss.length + 1);
-      expect(merged.rss.at(-1).name).toBe('new-feed');
+      expect(merged.rss.at(-1)?.name).toBe('new-feed');
       expect(output).toContain('Added new source: biomejs/biome');
       expect(output).toContain('Added new source: new-feed');
     });
@@ -68,9 +70,7 @@ function runMerge(released: string, installed: string) {
 
     return {
       output,
-      merged: parse(
-        readFileSync(join(dir, 'install', 'config', 'sources.yml'), 'utf8'),
-      ),
+      merged: loadSourcesConfig(join(dir, 'install', 'config', 'sources.yml')),
     };
   } finally {
     rmSync(dir, { recursive: true });
