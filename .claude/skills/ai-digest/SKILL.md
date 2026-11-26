@@ -49,9 +49,9 @@ Save the returned entries — you will use them for semantic deduplication in St
 
 Log one of:
 
-- `Step 2: Previous digests loaded — X entries from Y digests`, with Y = `digests_found`;
+- `Step 2: Previous digests loaded — X entries from Y digests`, when `digests_found` is above 0, with Y = `digests_found`;
 - `Step 2: No previous digests found, no cross-day dedup`, when `digests_found` is 0 and the result has no `warnings`;
-- `Step 2: Digest folder not read, no cross-day dedup`, when the result has `warnings`; then log each warning on its own line.
+- `Step 2: Digest folder not read, no cross-day dedup (in Docker, start the run with run.sh)`, when the result has `warnings`; then log each warning on its own line.
 
 ## Step 3: Collect Data
 

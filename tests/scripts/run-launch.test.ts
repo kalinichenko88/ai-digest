@@ -18,12 +18,15 @@ const ROOT = join(import.meta.dirname, '..', '..');
 describe('run.sh: the digest folder in the MCP container', () => {
   it('mounts output_path read-only at the path that the server reads', () => {
     const { home, args } = launch(
-      'output_path: ~/notes/digests  # where to save digest files\n',
+      'output_path: ~/Vault Notes/digests  # where to save digest files\n',
     );
-    const digests = join(home, 'notes', 'digests');
+    const digests = join(home, 'Vault Notes', 'digests');
+    const command = args.join(' ');
 
-    expect(args).toContain(`HOME=${home}`);
-    expect(args).toContain(`type=bind,src=${digests},dst=${digests},readonly`);
+    expect(command).toContain(`-e HOME=${home} `);
+    expect(command).toContain(
+      `--mount type=bind,src=${digests},dst=${digests},readonly `,
+    );
     expect(existsSync(digests), 'docker refuses a missing source').toBe(true);
   });
 
@@ -43,6 +46,9 @@ describe('run.sh: the digest folder in the MCP container', () => {
     const src = mount?.match(/src=([^,]+)/)?.[1] ?? 'no mount';
 
     expect(existsSync(join(ROOT, src)), src).toBe(true);
+    expect(mount, 'the server must not read it as output_path').not.toMatch(
+      /dst=\/home\/u/,
+    );
   });
 });
 
