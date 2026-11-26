@@ -24,4 +24,3 @@ Crypto, Web3, blockchain, NFTs
 - `/ai-digest` — Run the full daily digest pipeline (validate → collect → deduplicate → summarize → deliver)
 - `/add-source` — Add a new source (RSS or GitHub release) to `config/sources.yml` interactively
 - `/validate-sources` — Validate `config/sources.yml` structure and check all URLs are reachable
-- `/release <version>` — Create a new release (bump version, tag, changelog, GitHub Release)
