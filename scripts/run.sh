@@ -195,11 +195,14 @@ AI_DIGEST_OUTPUT="$(cd "$AI_DIGEST_OUTPUT" && pwd)"
 # Claude Code starts no MCP server: fetch the one of the installed version.
 if [ ! -f .mcp.json ]; then
   MCP_JSON_URL="https://raw.githubusercontent.com/${REPO}/v$(cat .version)/.mcp.json"
-  if ! curl -fsSL --max-time 15 "$MCP_JSON_URL" -o .mcp.json; then
-    rm -f .mcp.json
+  # A proxy can answer with a page of its own: keep only a file that holds the server.
+  if ! curl -fsSL --max-time 15 "$MCP_JSON_URL" -o .mcp.json.part ||
+    ! grep -q '"ai-digest-mcp"' .mcp.json.part; then
+    rm -f .mcp.json.part
     runlog "no .mcp.json, and its download failed: $MCP_JSON_URL"
     exit 4
   fi
+  mv .mcp.json.part .mcp.json
   runlog "fetched .mcp.json from $MCP_JSON_URL"
 fi
 

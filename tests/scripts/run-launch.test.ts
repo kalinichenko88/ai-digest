@@ -22,7 +22,7 @@ describe('run.sh: the digest folder in the MCP container', () => {
       'output_path: ~/Vault Notes/digests  # where to save digest files\n',
     );
     const digests = join(home, 'Vault Notes', 'digests');
-    const command = args.join(' ');
+    const command = args().join(' ');
 
     expect(command).toContain(`-e HOME=${home} `);
     expect(command).toContain(
@@ -32,9 +32,11 @@ describe('run.sh: the digest folder in the MCP container', () => {
   });
 
   it('gives docker absolute paths for a relative output_path', () => {
-    const mount = launch(DELIVERY).args.find((arg) => {
-      return arg.startsWith('type=bind');
-    });
+    const mount = launch(DELIVERY)
+      .args()
+      .find((arg) => {
+        return arg.startsWith('type=bind');
+      });
 
     expect(mount).toMatch(/^type=bind,src=\/[^,]+,dst=\/[^,]+,readonly$/);
   });
@@ -54,32 +56,30 @@ describe('run.sh: the digest folder in the MCP container', () => {
 
 describe('run.sh: the MCP server in .mcp.json', () => {
   it('is not in .claude/settings.json, where Claude Code reads no server', () => {
-    const settings: unknown = JSON.parse(
-      readFileSync(join(ROOT, '.claude', 'settings.json'), 'utf8'),
-    );
+    const settings = readFileSync(`${ROOT}/.claude/settings.json`, 'utf8');
 
-    expect(settings).not.toHaveProperty('mcpServers');
+    expect(settings).not.toContain('"mcpServers"');
     expect(dockerArgs(ROOT, {})).toContain('ghcr.io/kalinichenko88/ai-digest');
   });
 
   it('is fetched for the installed version when the install has none', () => {
-    // The update helper of v0.1.8 and older does not copy .mcp.json.
-    const { dir, status } = launch(DELIVERY, { mcpJson: false, curl: CURL });
+    const mcpJson = readFileSync(join(ROOT, '.mcp.json'), 'utf8');
+    const { dir, status } = launch(DELIVERY, { download: mcpJson });
+    const curlArgs = readFileSync(join(dir, 'bin', 'curl.args'), 'utf8');
 
     expect(status).toBe(0);
-    expect(readFileSync(join(dir, 'bin', 'curl.args'), 'utf8')).toContain(
+    expect(curlArgs).toContain(
       'https://raw.githubusercontent.com/kalinichenko88/ai-digest/v0.0.0/.mcp.json',
     );
-    expect(readFileSync(join(dir, '.mcp.json'), 'utf8')).toBe(
-      readFileSync(join(ROOT, '.mcp.json'), 'utf8'),
-    );
+    expect(curlArgs).toContain('--max-time');
+    expect(readFileSync(join(dir, '.mcp.json'), 'utf8')).toBe(mcpJson);
   });
 
-  it('stops the run with exit 4 when it cannot be fetched', () => {
-    const { dir, status } = launch(DELIVERY, {
-      mcpJson: false,
-      curl: 'exit 22',
-    });
+  it.each([
+    ['fails', null],
+    ['is the page of a proxy', '<html>Blocked by the proxy</html>'],
+  ])('stops the run with exit 4 when its download %s', (_, download) => {
+    const { dir, status } = launch(DELIVERY, { download });
 
     expect(status).toBe(4);
     expect(existsSync(join(dir, '.mcp.json'))).toBe(false);
@@ -90,49 +90,50 @@ describe('run.sh: the MCP server in .mcp.json', () => {
   });
 });
 
-// A curl that records its arguments and saves the .mcp.json of the repo as its -o file.
-const CURL = `echo "$@" > "$0.args"
-for arg; do [ "$prev" = -o ] && cp '${ROOT}/.mcp.json' "$arg"; prev=$arg; done`;
+// A curl that saves curl.body as its -o file, or fails as on HTTP 404.
+const CURL = `echo "$@" > "$0.args"; [ -f "$0.body" ] || exit 22
+for arg; do [ "$prev" = -o ] && cp "$0.body" "$arg"; prev=$arg; done`;
 
-type Install = { mcpJson?: boolean; curl?: string; docker?: string };
+// download: what curl serves (null: it fails); with one, no .mcp.json.
+type Install = { download?: string | null; docker?: string };
 
 // Runs run.sh as the archive ships it, with a stub claude that records the
 // environment that Claude Code expands .mcp.json with.
 function launch(delivery: string, install: Install = {}) {
   const dir = mkdtempSync(join(tmpdir(), 'ai-digest-'));
   const home = join(dir, 'home');
+  const bin = join(dir, 'bin');
   onTestFinished(() => {
     rmSync(dir, { recursive: true });
   });
   mkdirSync(join(dir, 'config'));
-  mkdirSync(join(dir, 'bin'));
+  mkdirSync(bin);
   mkdirSync(home);
   writeFileSync(join(dir, '.version'), '0.0.0');
   writeFileSync(join(dir, 'config', 'delivery.yml'), delivery);
   copyFileSync(join(ROOT, 'scripts', 'run.sh'), join(dir, 'run.sh'));
-  if (install.mcpJson !== false) {
+  if (install.download === undefined) {
     copyFileSync(join(ROOT, '.mcp.json'), join(dir, '.mcp.json'));
   }
   const stubs = {
     claude: `printf %s "$AI_DIGEST_OUTPUT" > '${dir}/output'`,
     docker: install.docker ?? 'exit 0',
-    curl: install.curl ?? 'exit 22',
+    curl: CURL,
   };
   for (const [name, body] of Object.entries(stubs)) {
-    writeFileSync(join(dir, 'bin', name), `#!/bin/sh\n${body}\n`, {
-      mode: 0o755,
-    });
+    writeFileSync(join(bin, name), `#!/bin/sh\n${body}\n`, { mode: 0o755 });
+  }
+  if (typeof install.download === 'string') {
+    writeFileSync(join(bin, 'curl.body'), install.download);
   }
   const { status } = spawnSync('bash', [join(dir, 'run.sh')], {
-    env: { ...process.env, HOME: home, PATH: `${dir}/bin:${process.env.PATH}` },
+    env: { ...process.env, HOME: home, PATH: `${bin}:${process.env.PATH}` },
   });
-  const output = existsSync(join(dir, 'output'))
-    ? readFileSync(join(dir, 'output'), 'utf8')
-    : '';
-  const args =
-    status === 0
-      ? dockerArgs(dir, { HOME: home, AI_DIGEST_OUTPUT: output })
-      : [];
+  const args = () => {
+    const output = readFileSync(join(dir, 'output'), 'utf8');
+
+    return dockerArgs(dir, { HOME: home, AI_DIGEST_OUTPUT: output });
+  };
 
   return { dir, home, status, args };
 }

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-VERSION="${1:?Usage: build-archive.sh <version>}"
-ARCHIVE_NAME="ai-digest-v${VERSION}.tar.gz"
+VERSION="${1:?Usage: build-archive.sh <version> [output dir]}"
+ARCHIVE="${2:-.}/ai-digest-v${VERSION}.tar.gz"
 STAGING_DIR="$(mktemp -d)"
 TARGET="${STAGING_DIR}/ai-digest"
 
@@ -35,9 +35,9 @@ cp README.md "${TARGET}/README.md"
 chmod +x "${TARGET}/run.sh" "${TARGET}/install.sh"
 
 # Create archive
-tar -czf "${ARCHIVE_NAME}" -C "${STAGING_DIR}" ai-digest
+tar -czf "${ARCHIVE}" -C "${STAGING_DIR}" ai-digest
 
 # Cleanup
 rm -rf "${STAGING_DIR}"
 
-echo "${ARCHIVE_NAME}"
+echo "${ARCHIVE}"

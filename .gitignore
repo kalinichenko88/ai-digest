@@ -2,4 +2,3 @@ node_modules/
 dist/
 logs/
 .env
-ai-digest-v*.tar.gz

@@ -32,15 +32,13 @@ Data flow of one run:
 
 Two things ship: the Docker image on GHCR (the server and the default
 config), and a tarball on GitHub Releases with the files that
-`scripts/build-archive.sh` copies: the skills `ai-digest`, `add-source` and
-`validate-sources` (not `release`), `settings.json`, `.mcp.json`, the config
-templates, `run.sh`, `install.sh`, `CLAUDE.md`, `README.md`, `CHANGELOG.md`,
-`.env.example` and `.version`. `run.sh update` replaces the three skills,
-`settings.json`, `.mcp.json`, `run.sh`, `install.sh`, `README.md` and
-`.version`, and merges new sources into the person's `sources.yml`. It does
-not replace `CLAUDE.md`, `CHANGELOG.md`, `.env.example` or `delivery.yml`.
-The update helper of v0.1.8 and older does not copy `.mcp.json`; the new
-`run.sh` downloads it from the tag of `.version`.
+`scripts/build-archive.sh` copies, each by its own `cp` line: a new skill or
+file ships only with one, and the `release` skill does not ship. `run.sh
+update` replaces the files that its update helper in `scripts/run.sh` copies,
+and, with the Go `yq`, merges new sources into the person's `sources.yml`. It
+does not replace the person's `CLAUDE.md` or `delivery.yml`. The update
+helper of v0.1.8 and older does not copy `.mcp.json`; the new `run.sh`
+downloads it from the tag of `.version`.
 
 ## Codemap
 

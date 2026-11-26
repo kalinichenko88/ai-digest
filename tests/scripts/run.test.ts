@@ -78,17 +78,14 @@ describe('run.sh update: the files of the release', () => {
     const dir = mkdtempSync(join(tmpdir(), 'ai-digest-'));
     const install = join(dir, 'install');
     const helper = join(dir, 'helper', 'apply-update.sh');
-    // The archive of a release, built in the repo as CI builds it.
-    const archive = join(
-      ROOT,
-      execFileSync('bash', ['scripts/build-archive.sh', '0.0.0-test'], {
-        cwd: ROOT,
-        encoding: 'utf8',
-      }).trim(),
-    );
+    // The archive of a release, built from the repo as CI builds it.
+    const archive = execFileSync(
+      'bash',
+      ['scripts/build-archive.sh', '0.0.0-test', dir],
+      { cwd: ROOT, encoding: 'utf8' },
+    ).trim();
     onTestFinished(() => {
       rmSync(dir, { recursive: true });
-      rmSync(archive);
     });
     mkdirSync(join(install, '.claude', 'skills'), { recursive: true });
     cpSync(join(ROOT, 'config'), join(install, 'config'), { recursive: true });
