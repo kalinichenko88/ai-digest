@@ -33,6 +33,13 @@ if [ ! -f ".version" ]; then
   info "Downloaded and unpacked"
 fi
 
+# The release of these files, in both modes: its image is the one to pull
+VERSION="$(cat .version 2>/dev/null || true)"
+if [ -z "${VERSION}" ]; then
+  error "No version in .version. Download the release again: https://github.com/${REPO}/releases"
+  exit 1
+fi
+
 # --- Check dependencies ---
 echo ""
 for cmd in docker claude; do
@@ -88,8 +95,11 @@ fi
 # --- Pull Docker image ---
 echo ""
 if command -v docker &>/dev/null; then
-  echo "Pulling Docker image..."
-  docker pull "ghcr.io/${REPO}:latest"
+  echo "Pulling Docker image ghcr.io/${REPO}:${VERSION}..."
+  # By the version tag of this release: CI moves :latest before it publishes
+  # the release. .mcp.json runs :latest, which a pull of the version does not move.
+  docker pull "ghcr.io/${REPO}:${VERSION}"
+  docker tag "ghcr.io/${REPO}:${VERSION}" "ghcr.io/${REPO}:latest"
   info "Docker image pulled"
 else
   warn "Skipping Docker pull (docker not found)"

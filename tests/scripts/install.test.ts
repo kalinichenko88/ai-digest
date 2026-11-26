@@ -1,0 +1,106 @@
+import { execFileSync, spawnSync } from 'node:child_process';
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
+import { describe, expect, it, onTestFinished } from 'vitest';
+
+const ROOT = join(import.meta.dirname, '..', '..');
+const IMAGE = 'ghcr.io/kalinichenko88/ai-digest';
+
+describe('install.sh: the Docker image', () => {
+  it.each(['local', 'remote'] as const)(
+    'pulls the version of .version and tags it latest, in %s mode',
+    (mode) => {
+      const { status, docker } = install(mode, '9.9.9');
+
+      expect(status).toBe(0);
+      expect(docker, 'CI moves :latest before the release').toEqual([
+        `pull ${IMAGE}:9.9.9`,
+        `tag ${IMAGE}:9.9.9 ${IMAGE}:latest`,
+      ]);
+    },
+  );
+
+  it.each([
+    ['is empty', 'local', ''],
+    ['is not in the archive', 'remote', null],
+  ] as const)(
+    'stops with a message and pulls nothing when .version %s',
+    (_, mode, version) => {
+      const { status, output, docker } = install(mode, version);
+
+      expect(status).toBe(1);
+      expect(output).toContain('.version');
+      expect(docker).toEqual([]);
+    },
+  );
+});
+
+// A curl that serves a release of the GitHub API, then its archive.
+const CURL = `case "$*" in
+  *api.github.com*) echo '  "browser_download_url": "https://github.com/o/r/releases/download/v9.9.9/ai-digest-v9.9.9.tar.gz"' ;;
+  *) cat "$0.body" ;;
+esac`;
+
+// Runs install.sh in an unpacked archive (local) or in an empty folder, where
+// it downloads the archive (remote). version: the .version of the archive,
+// null for none. Each answer is the default.
+function install(mode: 'local' | 'remote', version: string | null) {
+  const dir = mkdtempSync(join(tmpdir(), 'ai-digest-'));
+  const archive = join(dir, 'archive', 'ai-digest');
+  const bin = join(dir, 'bin');
+  const cwd = mode === 'local' ? archive : join(dir, 'remote');
+  onTestFinished(() => {
+    rmSync(dir, { recursive: true });
+  });
+  mkdirSync(join(archive, 'config'), { recursive: true });
+  mkdirSync(bin);
+  mkdirSync(cwd, { recursive: true });
+  writeFileSync(join(archive, '.env.example'), 'GITHUB_TOKEN=\n');
+  if (version !== null) {
+    writeFileSync(join(archive, '.version'), version);
+  }
+  execFileSync('tar', [
+    '-czf',
+    join(bin, 'curl.body'),
+    '-C',
+    join(dir, 'archive'),
+    'ai-digest',
+  ]);
+  const stubs = { docker: 'echo "$@" >> "$0.calls"', curl: CURL };
+  for (const [name, body] of Object.entries(stubs)) {
+    writeFileSync(join(bin, name), `#!/bin/sh\n${body}\n`, { mode: 0o755 });
+  }
+  // The questions read /dev/tty, which a test has not: one empty line answers each.
+  writeFileSync(join(dir, 'answers'), '\n');
+  const script = readFileSync(join(ROOT, 'scripts', 'install.sh'), 'utf8');
+  writeFileSync(
+    join(dir, 'install.sh'),
+    script.replaceAll('/dev/tty', join(dir, 'answers')),
+  );
+
+  const { status, stdout, stderr } = spawnSync(
+    'bash',
+    [join(dir, 'install.sh')],
+    {
+      cwd,
+      encoding: 'utf8',
+      env: { ...process.env, PATH: `${bin}:${process.env.PATH}` },
+      timeout: 10_000,
+    },
+  );
+  const calls = join(bin, 'docker.calls');
+  const docker = existsSync(calls)
+    ? readFileSync(calls, 'utf8').trim().split('\n')
+    : [];
+
+  return { status, output: stdout + stderr, docker };
+}
