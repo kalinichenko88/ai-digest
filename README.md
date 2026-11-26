@@ -44,6 +44,8 @@ docker pull "ghcr.io/kalinichenko88/ai-digest:$v" && docker tag "ghcr.io/kalinic
 
 Later updates do this themselves.
 
+The update of v0.1.8 and older also writes the new `run.sh` into the file that a digest run in progress reads. That run then ends without its `Finished` line in the log and without its failure notification. So run that update when no digest run is in progress. Later updates let a run in progress finish with its own `run.sh`.
+
 ## Prerequisites
 
 - [Docker](https://docs.docker.com/get-docker/)

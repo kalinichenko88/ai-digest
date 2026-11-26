@@ -40,13 +40,17 @@ image by the version tag of the release, not `:latest`, which CI moves
 before it publishes the release. So a failed pull changes nothing, and the
 next update runs again. Then, with the Go `yq`, the helper merges new
 sources into the person's `sources.yml`, and it replaces the files that it
-copies, itself too. Last, it tags the image `:latest`, the tag that `.mcp.json`
+copies, itself too. It replaces `run.sh` with a copy beside it and a rename,
+so a digest run that waits in the old `run.sh` keeps that file and reads
+none of the new bytes. Last, it tags the image `:latest`, the tag that `.mcp.json`
 runs, and writes `.version`. It keeps every other file,
 as the person's `CLAUDE.md` and `delivery.yml`. In v0.1.8 and older, the
 helper is a heredoc in the installed `run.sh`. The first update from such a
 version runs that old helper: it does not copy `.mcp.json`, so the new
 `run.sh` downloads it from the tag of `.version`, and it does not move
-`:latest`, so the README gives the commands that do it, once.
+`:latest`, so the README gives the commands that do it, once. It also
+copies `run.sh` over the old one, so the README says to run that update
+when no digest run is in progress.
 
 ## Codemap
 
@@ -67,6 +71,8 @@ tests/                      vitest, one file per src file; fixtures/digests
   scripts/apply-update.test.ts  the sources.yml merge of apply-update.sh,
                             with yq
   scripts/run.test.ts       run.sh update, whole, from a real archive
+  scripts/update-during-run.test.ts  the update helper while a digest run
+                            waits: the run ends on its own run.sh
   scripts/run-launch.test.ts  the launcher: the mount of output_path, the
                             download of .mcp.json, exits 3 and 4
   scripts/install.test.ts   install.sh: the image of .version, with the
@@ -167,6 +173,9 @@ which uses `utils/`.
   empty folder where a stub `curl` serves the archive or fails; a stub `docker`
   records the pull. The questions of `install.sh` read `/dev/tty`, so the
   test runs a copy of the script that reads its answers from a file.
+  `update-during-run.test.ts` starts the launcher with a stub `claude` that
+  reads a fifo, runs the helper of the built archive while the launcher
+  waits, then closes the fifo. It checks that the launcher logs its own end.
 
 ## Invariants
 

@@ -6,6 +6,10 @@
 ## Updates
 
 - 2026-11-26 #45: Consequences. Was: "has 4 lines of room under I-7, and the last four fixes to it added 5, 1, 8 and 16 lines".
+- 2026-11-26 #44: Decision. Was: "The helper copies a new `run.sh` over
+  the one that bash runs, so `run.sh` runs the helper inside its `if` block
+  and exits in that block: bash has read the whole block before it runs it,
+  and it does not read the new file."
 
 ## Context
 
@@ -34,9 +38,10 @@ We will ship the helper as `apply-update.sh` at the root of the archive.
 `run.sh update` extracts the release into a temp folder and runs
 `bash <release>/apply-update.sh <release> <install> <version> <owner/repo>`.
 `run.sh` deletes the temp folder at exit with an `EXIT` trap. The helper
-copies a new `run.sh` over the one that bash runs, so `run.sh` runs the
-helper inside its `if` block and exits in that block: bash has read the
-whole block before it runs it, and it does not read the new file.
+replaces the `run.sh` that bash runs with a copy beside it and a rename, so
+a bash that runs the old file keeps it. `run.sh` runs the helper inside its
+`if` block and exits in that block: bash has read the whole block before it
+runs it, and it does not go on into the launcher.
 
 ## Consequences
 

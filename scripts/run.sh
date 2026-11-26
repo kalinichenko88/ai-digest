@@ -73,8 +73,8 @@ if [ "${1:-}" = "update" ]; then
   NEW_DIR="${UPDATE_TMPDIR}/ai-digest"
   [ -f "${NEW_DIR}/apply-update.sh" ] || error "Unexpected archive layout: expected ai-digest/apply-update.sh"
 
-  # The helper replaces this file (safe self-update): bash has read this whole
-  # if block already, so exit inside it, before bash reads on.
+  # The helper renames the new run.sh over this file, and bash reads on here:
+  # exit inside this if block, so that the update does not run the launcher.
   bash "${NEW_DIR}/apply-update.sh" "${NEW_DIR}" "${PROJECT_DIR}" "${LATEST}" "${REPO}"
   exit
 fi
