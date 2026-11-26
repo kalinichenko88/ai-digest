@@ -35,7 +35,14 @@ When the pull of the Docker image fails, for example because Docker is not runni
 
 Claude Code reads the MCP server from `.mcp.json`. The update of v0.1.8 and older does not bring that file, so the next run of `run.sh` downloads the `.mcp.json` of your installed version from GitHub, once.
 
-The update of v0.1.8 and older also leaves the `:latest` image that `.mcp.json` runs as it was. After that update, pull it once: `docker pull ghcr.io/kalinichenko88/ai-digest`. Later updates pull the image of their version and tag it `:latest` themselves.
+The update of v0.1.8 and older also leaves the `:latest` image that `.mcp.json` runs as it was. After that update, run this once in the install folder. It takes the image of your new version and tags it `:latest`:
+
+```bash
+v=$(cat .version)
+docker pull "ghcr.io/kalinichenko88/ai-digest:$v" && docker tag "ghcr.io/kalinichenko88/ai-digest:$v" ghcr.io/kalinichenko88/ai-digest
+```
+
+Later updates do this themselves.
 
 ## Prerequisites
 
