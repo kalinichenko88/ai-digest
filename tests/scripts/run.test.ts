@@ -16,15 +16,17 @@ import { describe, expect, it, onTestFinished } from 'vitest';
 const ROOT = join(import.meta.dirname, '..', '..');
 // The image that .mcp.json runs: with no tag, that is :latest.
 const IMAGE = 'ghcr.io/kalinichenko88/ai-digest';
-// Each file that the update copies into the install, and its source in the repo.
+// Each file that the update replaces in the install, and its source in the repo.
 const SHIPPED: Record<string, string> = {
   '.claude/settings.json': '.claude/settings.json',
   '.claude/skills/add-source/SKILL.md': '.claude/skills/add-source/SKILL.md',
   '.claude/skills/ai-digest/SKILL.md': '.claude/skills/ai-digest/SKILL.md',
   '.claude/skills/validate-sources/SKILL.md':
     '.claude/skills/validate-sources/SKILL.md',
+  '.env.example': '.env.example',
   '.mcp.json': '.mcp.json',
   '.version': '.version',
+  'CHANGELOG.md': 'CHANGELOG.md',
   'README.md': 'README.md',
   'apply-update.sh': 'scripts/apply-update.sh',
   'install.sh': 'scripts/install.sh',
@@ -32,7 +34,7 @@ const SHIPPED: Record<string, string> = {
 };
 
 describe('run.sh update', () => {
-  it('installs each file of the release archive, then deletes the download', () => {
+  it('replaces each file of the install that the release ships, then deletes the download', () => {
     const { dir, install, status } = update();
     const download = readFileSync(join(dir, 'download'), 'utf8').trim();
 
@@ -73,6 +75,10 @@ describe('run.sh update', () => {
       `pull ${IMAGE}:0.0.0-test\n`,
     );
     expect(existsSync(join(install, '.mcp.json'))).toBe(false);
+    expect(existsSync(join(install, 'apply-update.sh'))).toBe(false);
+    expect(readFileSync(join(install, 'run.sh'), 'utf8')).toMatch(
+      /# v0\.0\.0\n$/,
+    );
     expect(readFileSync(join(install, '.version'), 'utf8')).toBe('0.0.0');
     expect(existsSync(dirname(download)), download).toBe(false);
   });

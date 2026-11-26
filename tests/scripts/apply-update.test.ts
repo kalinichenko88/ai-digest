@@ -104,9 +104,16 @@ function runMerge(released: string, installed: string, yq?: string) {
   }
 }
 
-// The start of the update helper, up to the copy of the files, is the config merge.
+// The header of the update helper and its config merge, without the pull of
+// the image between them and the copy of the files after them.
 function mergeScript(): string {
-  return readFileSync(join(ROOT, 'scripts', 'apply-update.sh'), 'utf8').split(
-    '# --- Replace non-config files ---',
+  const script = readFileSync(join(ROOT, 'scripts', 'apply-update.sh'), 'utf8');
+  const header = script.split(
+    '# --- Pull the Docker image of this release ---',
   )[0];
+  const merge = script
+    .split('# --- Merge configs with yq ---')[1]
+    .split('# --- Replace non-config files ---')[0];
+
+  return header + merge;
 }

@@ -27,7 +27,7 @@ error() { echo -e "${RED}✗${NC} $1"; exit 1; }
 if command -v docker &>/dev/null; then
   echo "Pulling Docker image ${IMAGE}:${LATEST}..."
   docker pull "${IMAGE}:${LATEST}" \
-    || error "Could not pull ${IMAGE}:${LATEST}, so nothing changed. Start Docker and run ./run.sh update again."
+    || error "Could not pull ${IMAGE}:${LATEST}, so nothing changed. Check that Docker runs and reaches ghcr.io, then run ./run.sh update again."
   info "Docker image pulled"
 else
   warn "docker not found — skipping image pull"
@@ -82,7 +82,10 @@ cp "${NEW_DIR}/apply-update.sh" "${TARGET_DIR}/apply-update.sh"
 info "apply-update.sh updated"
 
 cp "${NEW_DIR}/README.md" "${TARGET_DIR}/README.md"
-info "README.md updated"
+cp "${NEW_DIR}/CHANGELOG.md" "${TARGET_DIR}/CHANGELOG.md"
+# A template: install.sh copied it to .env once, and the update keeps .env
+cp "${NEW_DIR}/.env.example" "${TARGET_DIR}/.env.example"
+info "README.md, CHANGELOG.md and .env.example updated"
 
 # .mcp.json runs :latest: move it to the image of this release, with the files
 if command -v docker &>/dev/null; then
