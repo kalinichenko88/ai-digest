@@ -71,9 +71,11 @@ info "README.md updated"
 # --- Pull new Docker image ---
 # Before .version: when the pull fails, the next update runs again and pulls
 if command -v docker &>/dev/null; then
-  echo "Pulling Docker image ghcr.io/${REPO}:latest..."
-  # .mcp.json runs :latest, and CI pushes it with each release
-  docker pull "ghcr.io/${REPO}:latest"
+  echo "Pulling Docker image v${LATEST}..."
+  # The version tag matches .version; CI moves :latest before it publishes the
+  # release. .mcp.json runs :latest, which a pull of the version does not move.
+  docker pull "ghcr.io/${REPO}:${LATEST}"
+  docker tag "ghcr.io/${REPO}:${LATEST}" "ghcr.io/${REPO}:latest"
   info "Docker image updated"
 else
   warn "docker not found — skipping image pull"

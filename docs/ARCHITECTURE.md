@@ -37,9 +37,11 @@ file ships only with one, and the `release` skill does not ship. `run.sh
 update` downloads the latest release and runs the update helper of that
 release, `scripts/apply-update.sh` (ADR 0002). The helper replaces the files
 that it copies, itself too, and, with the Go `yq`, merges new sources into
-the person's `sources.yml`. It pulls `:latest`, the tag that `.mcp.json`
-runs and that CI pushes with each release, and only then writes `.version`,
-so a failed pull leaves the update to run again. It keeps every other file,
+the person's `sources.yml`. It pulls the image by the version tag, which
+matches `.version`, and tags it `:latest`, the tag that `.mcp.json` runs. CI
+moves `:latest` before it publishes the release, so the helper does not pull
+it. Only then does the helper write `.version`, so a failed pull leaves the
+update to run again. It keeps every other file,
 as the person's `CLAUDE.md` and `delivery.yml`. In v0.1.8 and older, the
 helper is a heredoc in the installed `run.sh`. The first update from such a
 version runs that old helper: it does not copy `.mcp.json`, so the new

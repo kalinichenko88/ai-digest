@@ -35,12 +35,13 @@ describe('run.sh update', () => {
     );
   });
 
-  it('pulls the latest image, the tag that .mcp.json runs', () => {
+  it('pulls the image of the version it installs, and tags it latest, the tag that .mcp.json runs', () => {
     const { dir, status } = update();
 
     expect(status).toBe(0);
-    expect(readFileSync(join(dir, 'bin', 'docker.args'), 'utf8')).toContain(
-      `pull ${IMAGE}:latest\n`,
+    // Not a pull of :latest, which CI moves before it publishes the release.
+    expect(readFileSync(join(dir, 'bin', 'docker.args'), 'utf8')).toBe(
+      `pull ${IMAGE}:0.0.0-test\ntag ${IMAGE}:0.0.0-test ${IMAGE}:latest\n`,
     );
   });
 
@@ -48,8 +49,8 @@ describe('run.sh update', () => {
     const { dir, install, status } = update('echo "$@" >> "$0.args"; exit 1');
 
     expect(status).toBe(1);
-    expect(readFileSync(join(dir, 'bin', 'docker.args'), 'utf8')).toContain(
-      `pull ${IMAGE}:latest\n`,
+    expect(readFileSync(join(dir, 'bin', 'docker.args'), 'utf8')).toBe(
+      `pull ${IMAGE}:0.0.0-test\n`,
     );
     expect(readFileSync(join(install, '.mcp.json'), 'utf8')).toBe(
       readFileSync(join(ROOT, '.mcp.json'), 'utf8'),
