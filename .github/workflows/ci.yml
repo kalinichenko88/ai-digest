@@ -46,7 +46,7 @@ jobs:
         run: npm test
 
   docker:
-    name: Build & Push Docker Image
+    name: Build Docker Image (push on a tag)
     needs: quality
     runs-on: ubuntu-latest
     permissions:
