@@ -40,9 +40,16 @@ describe('validateSources', () => {
 
 describe('validateStructure', () => {
   it('returns no errors for valid config', () => {
-    const rss = [{ name: 'test', url: 'https://example.com/rss', limit: 10 }];
+    // A query can choose another feed, so these two are not duplicates.
+    const hn = 'https://hnrss.org/frontpage?points=';
+    const rss = [
+      { name: 'hn', url: `${hn}100`, limit: 10 },
+      { name: 'hn-300', url: `${hn}300`, limit: 10 },
+    ];
     expect(validateStructure(sources(rss, ['owner/repo']))).toEqual([]);
   });
+
+  const dup = { name: 'dup', url: 'https://a.com', limit: 5 };
 
   // Rows hold raw YAML values, so a wrong type can reach validateStructure.
   const invalid: [string, unknown[], unknown[]][] = [
@@ -51,16 +58,11 @@ describe('validateStructure', () => {
     ['url must start', [{ name: 'test', url: 'ftp://bad', limit: 10 }], []],
     ['url must start', [{ name: 'test', url: 123, limit: 1 }], []],
     ['limit must be', [{ name: 'test', url: 'https://a.com', limit: 0 }], []],
-    [
-      'duplicate name',
-      [
-        { name: 'dup', url: 'https://a.com', limit: 5 },
-        { name: 'dup', url: 'https://b.com', limit: 5 },
-      ],
-      [],
-    ],
-    ['owner/repo', [], ['just-a-name']],
-    ['duplicate repo', [], ['a/b', 'a/b']],
+    // /add-source finds the errors of its new entry by these prefixes.
+    ['rss[1]: duplicate name', [dup, { ...dup, url: 'https://b.com' }], []],
+    ['rss[1] "other": duplicate url', [dup, { ...dup, name: 'other' }], []],
+    ['"just-a-name" must match', [], ['just-a-name']],
+    ['duplicate repo "a/b"', [], ['a/b', 'a/b']],
   ];
 
   it.each(invalid)('reports "%s" (case %#)', (expected, rss, repos) => {

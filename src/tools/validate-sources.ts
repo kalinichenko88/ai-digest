@@ -68,6 +68,8 @@ export function validateStructure(config: SourcesConfig): string[] {
   const errors: string[] = [];
 
   const rssNames = new Set<string>();
+  // Exact match, not normalizeUrl: a query can choose the feed (?points=100).
+  const rssUrls = new Set<string>();
   for (const [i, src] of config.rss.entries()) {
     // YAML gives a number for `name: 2024`, so check the type first.
     if (typeof src.name !== 'string' || src.name.trim() === '') {
@@ -82,6 +84,10 @@ export function validateStructure(config: SourcesConfig): string[] {
       errors.push(
         `rss[${i}] "${src.name}": url must start with http:// or https://`,
       );
+    } else if (rssUrls.has(src.url)) {
+      errors.push(`rss[${i}] "${src.name}": duplicate url "${src.url}"`);
+    } else {
+      rssUrls.add(src.url);
     }
 
     if (!Number.isInteger(src.limit) || src.limit < 1) {
