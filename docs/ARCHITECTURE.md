@@ -14,8 +14,8 @@ the judgment work itself: filter by the person's interests, categorize,
 summarize, write the Markdown file, notify.
 
 The MCP server is one Node process over stdio. It normally runs in Docker:
-`.claude/settings.json` starts `docker run` with the install's `config/` and
-`logs/` folders mounted into the container, and the digest folder of
+`.claude/settings.json` starts `docker run` with the install's `config/`
+(read-only) and `logs/` folders mounted into the container, and the digest folder of
 `output_path`, read-only, at its host path.
 
 Data flow of one run:
