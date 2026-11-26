@@ -26,6 +26,16 @@
       "formatEmbeds": false
     }
   },
+  "linter": {
+    "rules": {
+      "style": {
+        "useConsistentTypeDefinitions": {
+          "level": "error",
+          "options": { "style": "type" }
+        }
+      }
+    }
+  },
   "assist": {
     "enabled": true,
     "actions": {

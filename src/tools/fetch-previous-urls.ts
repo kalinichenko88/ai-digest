@@ -6,10 +6,10 @@ import type { DigestEntry, PreviousDigestResult } from '../types.js';
 
 const DATE_PATTERN = /^(\d{4}-\d{2}-\d{2})\.md$/;
 
-export interface DigestFile {
+export type DigestFile = {
   date: string;
   path: string;
-}
+};
 
 export function getDigestFiles(
   dir: string,
