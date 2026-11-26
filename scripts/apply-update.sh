@@ -69,8 +69,12 @@ cp "${NEW_DIR}/.claude/settings.json" "${TARGET_DIR}/.claude/settings.json"
 cp "${NEW_DIR}/.mcp.json" "${TARGET_DIR}/.mcp.json"
 info "settings.json and .mcp.json updated"
 
-cp "${NEW_DIR}/run.sh" "${TARGET_DIR}/run.sh"
-chmod +x "${TARGET_DIR}/run.sh"
+# A digest run can wait in run.sh now, and bash reads its next commands from
+# the file. A cp writes into that file; a rename gives a new one, and the run
+# keeps reading the old one.
+cp "${NEW_DIR}/run.sh" "${TARGET_DIR}/run.sh.new"
+chmod +x "${TARGET_DIR}/run.sh.new"
+mv "${TARGET_DIR}/run.sh.new" "${TARGET_DIR}/run.sh"
 info "run.sh updated"
 
 cp "${NEW_DIR}/install.sh" "${TARGET_DIR}/install.sh"

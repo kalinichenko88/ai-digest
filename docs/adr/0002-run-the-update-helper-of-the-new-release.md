@@ -30,9 +30,13 @@ We will ship the helper as `apply-update.sh` at the root of the archive.
 `run.sh update` extracts the release into a temp folder and runs
 `bash <release>/apply-update.sh <release> <install> <version> <owner/repo>`.
 `run.sh` deletes the temp folder at exit with an `EXIT` trap. The helper
-copies a new `run.sh` over the one that bash runs, so `run.sh` runs the
-helper inside its `if` block and exits in that block: bash has read the
-whole block before it runs it, and it does not read the new file.
+replaces the `run.sh` that bash runs: it copies the new one beside it, then
+renames the copy over it. A `cp` over it would write into the file that a
+digest run reads while it waits for Claude, and the run would go on at its
+old offset in the new bytes (#44). After the rename, that run keeps the old
+file. `run.sh` runs the helper inside its `if` block and exits in that
+block: bash has read the whole block before it runs it, and it does not go
+on into the launcher.
 
 ## Consequences
 
@@ -64,4 +68,6 @@ None. `scripts/run.sh` leaves the `debt` list of I-7.
 `scripts/build-archive.sh` and runs `run.sh update` on it with stubs for
 `curl`, `gh`, `docker` and `claude`. It checks the installed `.mcp.json` and
 `apply-update.sh`, that the download is deleted, and that the launcher after
-the update block does not start Claude.
+the update block does not start Claude. `tests/scripts/update-during-run.test.ts`
+runs the helper while a digest run of an older, longer `run.sh` waits for a
+stub `claude`, and checks that the run logs its own end.
