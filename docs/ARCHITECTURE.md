@@ -48,7 +48,9 @@ as the person's `CLAUDE.md` and `delivery.yml`. In v0.1.8 and older, the
 helper is a heredoc in the installed `run.sh`. The first update from such a
 version runs that old helper: it does not copy `.mcp.json`, so the new
 `run.sh` downloads it from the tag of `.version`, and it does not move
-`:latest`, so the README gives the commands that do it, once.
+`:latest`, so the README gives the commands that do it, once. It also
+copies `run.sh` over the old one, so the README says to run that update
+when no digest run is in progress.
 
 ## Codemap
 

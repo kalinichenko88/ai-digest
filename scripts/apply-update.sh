@@ -74,7 +74,7 @@ info "settings.json and .mcp.json updated"
 # keeps reading the old one.
 cp "${NEW_DIR}/run.sh" "${TARGET_DIR}/run.sh.new"
 chmod +x "${TARGET_DIR}/run.sh.new"
-mv "${TARGET_DIR}/run.sh.new" "${TARGET_DIR}/run.sh"
+mv -f "${TARGET_DIR}/run.sh.new" "${TARGET_DIR}/run.sh"
 info "run.sh updated"
 
 cp "${NEW_DIR}/install.sh" "${TARGET_DIR}/install.sh"

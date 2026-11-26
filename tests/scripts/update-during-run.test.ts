@@ -40,8 +40,8 @@ describe('apply-update.sh: the run.sh of a digest run that waits for claude', ()
     writeFileSync(join(install, '.version'), '0.0.0');
     writeFileSync(join(install, 'config', 'delivery.yml'), 'output_path: x\n');
     copyFileSync(join(ROOT, '.mcp.json'), join(install, '.mcp.json'));
-    // An older run.sh, longer before its wait, as the one of v0.1.8 with the
-    // helper heredoc: at its offset after the wait, the new one has no bytes.
+    // An older run.sh, longer before its wait, as the one of v0.1.8 is: at
+    // its offset after the wait, the new run.sh has no bytes left.
     const script = readFileSync(join(ROOT, 'scripts', 'run.sh'), 'utf8');
     writeFileSync(
       join(install, 'run.sh'),
@@ -59,7 +59,11 @@ describe('apply-update.sh: the run.sh of a digest run that waits for claude', ()
     for (const [name, body] of Object.entries(stubs)) {
       writeFileSync(join(bin, name), `#!/bin/sh\n${body}\n`, { mode: 0o755 });
     }
-    const env = { ...process.env, PATH: `${bin}:${process.env.PATH}` };
+    const env = {
+      ...process.env,
+      HOME: dir,
+      PATH: `${bin}:${process.env.PATH}`,
+    };
 
     const run = spawn('bash', [join(install, 'run.sh')], {
       env,
@@ -67,7 +71,12 @@ describe('apply-update.sh: the run.sh of a digest run that waits for claude', ()
     });
     const exited = once(run, 'exit');
     // The open returns when claude reads the fifo: run.sh started it.
-    const claude = await open(go, 'w');
+    const claude = await Promise.race([
+      open(go, 'w'),
+      exited.then(([code]) => {
+        throw new Error(`run.sh exited ${code} before it started claude`);
+      }),
+    ]);
     execFileSync(
       'bash',
       [
