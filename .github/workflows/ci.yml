@@ -31,7 +31,7 @@ jobs:
       - name: Typecheck
         run: npx tsc --noEmit
 
-      # Only the image runs the build, on a tag: check tsconfig.build.json on every push
+      # The Docker build runs only on a tag. This step checks tsconfig.build.json on every push.
       - name: Build
         run: npm run build && test -f dist/mcp-server.js
 
