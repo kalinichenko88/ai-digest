@@ -113,12 +113,10 @@ function prepare(delivery: string, install: Install) {
   let path = `${bin}:${process.env.PATH}`;
   if (install.docker === null) {
     path = bin;
-    const tools = execFileSync('which', TOOLS, { encoding: 'utf8' }).split(
-      '\n',
-    );
-    TOOLS.forEach((tool, index) => {
-      symlinkSync(tools[index] ?? tool, join(bin, tool));
-    });
+    for (const tool of TOOLS) {
+      const target = execFileSync('which', [tool], { encoding: 'utf8' });
+      symlinkSync(target.trim(), join(bin, tool));
+    }
   }
   const env: NodeJS.ProcessEnv = { ...process.env, HOME: home, PATH: path };
   if (install.bashEnv !== undefined) {
