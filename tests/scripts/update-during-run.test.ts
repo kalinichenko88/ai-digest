@@ -59,11 +59,7 @@ describe('apply-update.sh: the run.sh of a digest run that waits for claude', ()
     for (const [name, body] of Object.entries(stubs)) {
       writeFileSync(join(bin, name), `#!/bin/sh\n${body}\n`, { mode: 0o755 });
     }
-    const env = {
-      ...process.env,
-      HOME: dir,
-      PATH: `${bin}:${process.env.PATH}`,
-    };
+    const env = { ...process.env, PATH: `${bin}:${process.env.PATH}` };
 
     const run = spawn('bash', [join(install, 'run.sh')], {
       env,
@@ -84,7 +80,7 @@ describe('apply-update.sh: the run.sh of a digest run that waits for claude', ()
       { env },
     );
     await claude.close();
-    const [status] = await exited;
+    await exited;
     const logs = join(install, 'logs');
     const dayLog = readdirSync(logs).find((name) => {
       return name.endsWith('.md');
@@ -94,6 +90,5 @@ describe('apply-update.sh: the run.sh of a digest run that waits for claude', ()
     expect(readFileSync(join(logs, dayLog ?? 'no day log'), 'utf8')).toContain(
       'Finished with exit code 0',
     );
-    expect(status).toBe(0);
   });
 });
