@@ -61,7 +61,9 @@ export function dockerArgs(dir: string, env: Record<string, string>): string[] {
   });
 }
 
-// Writes each stub as an executable shell script in bin.
+// Writes each stub as an executable shell script in bin. Each test of
+// tests/scripts/ writes its stubs with it, so a change of the shebang or the
+// mode goes here only.
 export function writeStubs(bin: string, stubs: Record<string, string>) {
   for (const [name, body] of Object.entries(stubs)) {
     writeFileSync(join(bin, name), `#!/bin/sh\n${body}\n`, { mode: 0o755 });
