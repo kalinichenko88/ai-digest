@@ -109,19 +109,25 @@ warn()  { echo -e "${YELLOW}!${NC} $1"; }
 
 # --- Merge configs with yq ---
 if command -v yq &>/dev/null; then
-  # sources.yml: append new sources not present in user config (by name)
-  for section in rss github_releases; do
-    NEW_NAMES=$(yq ".$section[].name" "${NEW_DIR}/config/sources.yml" 2>/dev/null || true)
-    for name in $NEW_NAMES; do
-      EXISTS=$(yq ".$section[] | select(.name == \"$name\")" "${TARGET_DIR}/config/sources.yml" 2>/dev/null || true)
-      if [ -z "$EXISTS" ]; then
-        YQ_TMP=$(mktemp)
-        yq ".$section[] | select(.name == \"$name\")" "${NEW_DIR}/config/sources.yml" > "$YQ_TMP"
-        yq -i ".$section += [load(\"$YQ_TMP\")]" "${TARGET_DIR}/config/sources.yml"
-        rm -f "$YQ_TMP"
-        info "Added new source: $name"
-      fi
-    done
+  # sources.yml: append the new sources that the user config does not have
+  # rss holds mappings: match them by name
+  NEW_NAMES=$(yq ".rss[].name" "${NEW_DIR}/config/sources.yml" 2>/dev/null || true)
+  for name in $NEW_NAMES; do
+    EXISTS=$(yq ".rss[] | select(.name == \"$name\")" "${TARGET_DIR}/config/sources.yml" 2>/dev/null || true)
+    if [ -z "$EXISTS" ]; then
+      YQ_TMP=$(mktemp)
+      yq ".rss[] | select(.name == \"$name\")" "${NEW_DIR}/config/sources.yml" > "$YQ_TMP"
+      yq -i ".rss += [load(\"$YQ_TMP\")]" "${TARGET_DIR}/config/sources.yml"
+      rm -f "$YQ_TMP"
+      info "Added new source: $name"
+    fi
+  done
+  # github_releases.repos holds plain strings: match them by value
+  for repo in $(yq ".github_releases.repos[]" "${NEW_DIR}/config/sources.yml"); do
+    if [ -z "$(yq ".github_releases.repos[] | select(. == \"$repo\")" "${TARGET_DIR}/config/sources.yml")" ]; then
+      yq -i ".github_releases.repos += [\"$repo\"]" "${TARGET_DIR}/config/sources.yml"
+      info "Added new source: $repo"
+    fi
   done
 
   # delivery.yml needs no merge — loadDeliveryConfig defaults every key.
