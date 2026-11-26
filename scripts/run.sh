@@ -132,7 +132,7 @@ if [[ "$(yq --version 2>/dev/null)" == *mikefarah* ]]; then
 
   # delivery.yml needs no merge — loadDeliveryConfig defaults every key.
 else
-  warn "yq (mikefarah/yq) not found — skipping config merge, configs unchanged"
+  warn "no yq of mikefarah/yq on PATH — skipping config merge, configs unchanged"
 fi
 
 # --- Replace non-config files ---

@@ -116,8 +116,8 @@ which uses `utils/`.
   runs the `sources.yml` merge of the update helper in `scripts/run.sh`
   with the Go `yq`, and checks that the Python `yq` (`pip install yq`)
   skips the merge. It runs in CI, which installs both. Locally, each case
-  runs only where its `yq` is: the Go one on `PATH`, the Python one named
-  by `PYTHON_YQ`.
+  runs only where its `yq` is: the Go one on `PATH`, the Python one by its
+  path in `PYTHON_YQ`.
 
 ## Invariants
 

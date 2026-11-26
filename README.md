@@ -29,6 +29,8 @@ curl -sL https://github.com/kalinichenko88/ai-digest/releases/latest/download/in
 ./run.sh update
 ```
 
+The update adds the new sources of the release to your `config/sources.yml` with the Go [yq](https://github.com/mikefarah/yq) (`brew install yq`). Without it, or with the Python `yq` of pip or apt, the update skips this merge and leaves your configs as they are.
+
 ## Prerequisites
 
 - [Docker](https://docs.docker.com/get-docker/)
