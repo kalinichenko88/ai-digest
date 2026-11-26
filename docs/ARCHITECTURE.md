@@ -93,7 +93,8 @@ scripts/                    run.sh (launcher and updater), apply-update.sh
                             (the update helper that each release ships),
                             install.sh, build-archive.sh
 Dockerfile                  two stages: build, then dist + config
-.github/workflows/ci.yml    biome, tsc, build, vitest; on a tag: image and release
+.github/workflows/ci.yml    biome, tsc, build, vitest, image build; on a tag:
+                            image push and release
 ```
 
 ## Modules
