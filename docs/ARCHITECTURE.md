@@ -36,8 +36,8 @@ config), and a tarball on GitHub Releases with the files that
 file ships only with one, and the `release` skill does not ship. `run.sh
 update` replaces the files that its update helper in `scripts/run.sh` copies,
 and, with the Go `yq`, merges new sources into the person's `sources.yml`. It
-does not replace the person's `CLAUDE.md` or `delivery.yml`. The update
-helper of v0.1.8 and older does not copy `.mcp.json`; the new `run.sh`
+keeps every other file, as the person's `CLAUDE.md` and `delivery.yml`. The
+update helper of v0.1.8 and older does not copy `.mcp.json`; the new `run.sh`
 downloads it from the tag of `.version`.
 
 ## Codemap

@@ -2,7 +2,7 @@
 set -euo pipefail
 
 VERSION="${1:?Usage: build-archive.sh <version> [output dir]}"
-ARCHIVE="${2:-.}/ai-digest-v${VERSION}.tar.gz"
+ARCHIVE="${2:+$2/}ai-digest-v${VERSION}.tar.gz"
 STAGING_DIR="$(mktemp -d)"
 TARGET="${STAGING_DIR}/ai-digest"
 

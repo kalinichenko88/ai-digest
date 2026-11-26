@@ -199,7 +199,7 @@ if [ ! -f .mcp.json ]; then
   if ! curl -fsSL --max-time 15 "$MCP_JSON_URL" -o .mcp.json.part ||
     ! grep -q '"ai-digest-mcp"' .mcp.json.part; then
     rm -f .mcp.json.part
-    runlog "no .mcp.json, and its download failed: $MCP_JSON_URL"
+    runlog "no .mcp.json: the download of $MCP_JSON_URL failed or is not a .mcp.json"
     exit 4
   fi
   mv .mcp.json.part .mcp.json
