@@ -8,7 +8,8 @@ allowed-tools: Read, Edit, mcp__ai-digest-mcp__validate_sources
 # Add Source
 
 Help the user add a new source to `config/sources.yml`. The `validate_sources`
-MCP tool checks the new entry. This skill does no checks of its own.
+MCP tool checks the new entry. This skill checks nothing itself: it only
+picks an RSS name that the file does not have yet (step 4).
 
 ## Flow
 
@@ -36,12 +37,12 @@ MCP tool checks the new entry. This skill does no checks of its own.
      show the error, and stop.
    - `structure.errors` holds an error of the new entry: remove the new entry,
      show the error, and stop. An error of a new RSS entry starts with
-     `rss[N]`, where N is its index in `rss`, counted from 0. An error of a
+     `rss[N]`, where N is the number of `rss` entries before you added it. An error of a
      new repo quotes it whole, as `"owner/name"`.
    - Its `reachability` item has `status: failed`: show its `detail`, and ask
      whether to keep it. If not, remove the new entry and stop.
    - `structure.errors` holds errors of other sources: they stop the next
-     digest run. Say how many there are, in one line, and that
+     digest run. Say how many errors there are, in one line, and that
      `/validate-sources` shows them.
 
 7. Confirm: "Added <name/repo> to <section>." When `structure.valid` is true,
