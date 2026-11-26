@@ -3,8 +3,12 @@ set -euo pipefail
 
 VERSION="${1:?Usage: build-archive.sh <version>}"
 ARCHIVE_NAME="ai-digest-v${VERSION}.tar.gz"
+OUT_DIR="$(pwd)"
 STAGING_DIR="$(mktemp -d)"
 TARGET="${STAGING_DIR}/ai-digest"
+
+# Copy from the repo, wherever this is called from; the archive goes to the current folder
+cd "$(dirname "$0")/.."
 
 mkdir -p "${TARGET}/.claude/skills"
 mkdir -p "${TARGET}/config"
@@ -14,8 +18,9 @@ cp -r .claude/skills/ai-digest "${TARGET}/.claude/skills/"
 cp -r .claude/skills/add-source "${TARGET}/.claude/skills/"
 cp -r .claude/skills/validate-sources "${TARGET}/.claude/skills/"
 
-# Claude Code settings
+# Claude Code settings, and the MCP server, which Claude Code reads from .mcp.json
 cp .claude/settings.json "${TARGET}/.claude/"
+cp .mcp.json "${TARGET}/.mcp.json"
 
 # Config templates
 cp config/sources.yml "${TARGET}/config/"
@@ -34,7 +39,7 @@ cp README.md "${TARGET}/README.md"
 chmod +x "${TARGET}/run.sh" "${TARGET}/install.sh"
 
 # Create archive
-tar -czf "${ARCHIVE_NAME}" -C "${STAGING_DIR}" ai-digest
+tar -czf "${OUT_DIR}/${ARCHIVE_NAME}" -C "${STAGING_DIR}" ai-digest
 
 # Cleanup
 rm -rf "${STAGING_DIR}"

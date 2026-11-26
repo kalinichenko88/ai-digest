@@ -140,7 +140,8 @@ cp -r "${NEW_DIR}/.claude/skills/"* "${TARGET_DIR}/.claude/skills/"
 info "Skills updated"
 
 cp "${NEW_DIR}/.claude/settings.json" "${TARGET_DIR}/.claude/settings.json"
-info "settings.json updated"
+cp "${NEW_DIR}/.mcp.json" "${TARGET_DIR}/.mcp.json"
+info "settings.json and .mcp.json updated"
 
 cp "${NEW_DIR}/run.sh" "${TARGET_DIR}/run.sh"
 chmod +x "${TARGET_DIR}/run.sh"
@@ -182,7 +183,7 @@ LOG_FILE="$LOG_DIR/$(date +%Y-%m-%d).md"
 
 cd "$PROJECT_DIR"
 
-# .claude/settings.json mounts this folder into the MCP container at the same path,
+# .mcp.json mounts this folder into the MCP container at the same path,
 # so the server reads the previous digests. Docker refuses a missing source.
 OUTPUT_PATH=$(sed -nE "s/^output_path:[[:space:]]*['\"]?([^'\"#]*[^'\"#[:space:]]).*/\1/p" config/delivery.yml)
 OUTPUT_PATH="${OUTPUT_PATH:-~/digests}"
@@ -190,9 +191,24 @@ export AI_DIGEST_OUTPUT="${OUTPUT_PATH/#\~/$HOME}"
 mkdir -p "$AI_DIGEST_OUTPUT"
 AI_DIGEST_OUTPUT="$(cd "$AI_DIGEST_OUTPUT" && pwd)"
 
+# The update helper of v0.1.8 and older does not copy .mcp.json, and without it
+# Claude Code starts no MCP server: fetch the one of the installed version.
+if [ ! -f .mcp.json ]; then
+  MCP_JSON_URL="https://raw.githubusercontent.com/${REPO}/v$(cat .version)/.mcp.json"
+  # A proxy can answer with a page of its own: keep only a file that holds the server.
+  if ! curl -fsSL --max-time 15 "$MCP_JSON_URL" -o .mcp.json.part ||
+    ! grep -q '"ai-digest-mcp"' .mcp.json.part; then
+    rm -f .mcp.json.part
+    runlog "no .mcp.json: the download of $MCP_JSON_URL failed or is not a .mcp.json"
+    exit 4
+  fi
+  mv .mcp.json.part .mcp.json
+  runlog "fetched .mcp.json from $MCP_JSON_URL"
+fi
+
 # The MCP server runs in a container: no daemon means no tools and no server-side
 # log either. Distinct exit codes so the launcher shows a diagnosis, not "exit 1".
-if grep -q '"docker"' "$PROJECT_DIR/.claude/settings.json" 2>/dev/null; then
+if grep -q '"docker"' .mcp.json; then
   if ! command -v docker >/dev/null; then
     runlog "docker not found in PATH"
     exit 2

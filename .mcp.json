@@ -1,0 +1,27 @@
+{
+  "mcpServers": {
+    "ai-digest-mcp": {
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "--env-file",
+        ".env",
+        "-e",
+        "TZ=${TZ:-}",
+        "-e",
+        "HOME=${HOME}",
+        "--mount",
+        "type=bind,src=${AI_DIGEST_OUTPUT:-./config},dst=${AI_DIGEST_OUTPUT:-/app/no-output-path},readonly",
+        "-v",
+        "/etc/localtime:/etc/localtime:ro",
+        "-v",
+        "./config:/app/config:ro",
+        "-v",
+        "./logs:/app/logs",
+        "ghcr.io/kalinichenko88/ai-digest"
+      ]
+    }
+  }
+}

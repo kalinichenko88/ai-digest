@@ -31,6 +31,8 @@ curl -sL https://github.com/kalinichenko88/ai-digest/releases/latest/download/in
 
 The update adds the new sources of the release to your `config/sources.yml` with the Go [yq](https://github.com/mikefarah/yq) (`brew install yq`). Without it, or with the Python `yq` of pip or apt, the update skips this merge and leaves your configs as they are.
 
+Claude Code reads the MCP server from `.mcp.json`. The update of v0.1.8 and older does not bring that file, so the next run of `run.sh` downloads the `.mcp.json` of your installed version from GitHub, once.
+
 ## Prerequisites
 
 - [Docker](https://docs.docker.com/get-docker/)
@@ -75,7 +77,7 @@ notification: true      # macOS notification when done
 
 > **Tip:** Set `output_path` to a folder inside your Obsidian vault (e.g. `~/Obsidian/Digests`) to read digests directly in Obsidian. If you have Obsidian Sync enabled, digests will be available on all your devices.
 
-> **Note:** To skip news that earlier digests already covered, the MCP server reads the digests of the last days in `output_path`. In the Docker setup, `run.sh` passes that folder to `.claude/settings.json`, which mounts it into the container, read-only. So in that setup, start each run with `run.sh`: a run started another way logs a warning and does not compare with earlier days. Give `output_path` as `~/…` or as an absolute path, in a folder that Docker can mount: with Docker Desktop or colima, a folder under your home folder works by default.
+> **Note:** To skip news that earlier digests already covered, the MCP server reads the digests of the last days in `output_path`. In the Docker setup, `run.sh` passes that folder to `.mcp.json`, which mounts it into the container, read-only. So in that setup, start each run with `run.sh`: a run started another way logs a warning and does not compare with earlier days. Give `output_path` as `~/…` or as an absolute path, in a folder that Docker can mount: with Docker Desktop or colima, a folder under your home folder works by default.
 
 ### 5. Set up personal context
 
@@ -149,7 +151,8 @@ tail -f logs/run.log
 ```
 
 When a run dies, `logs/run.log` is the file to read. Exit codes: `2` docker
-missing, `3` Docker daemon down, `137` killed (usually OOM), `143` terminated.
+missing, `3` Docker daemon down, `4` no `.mcp.json` and its download failed,
+`137` killed (usually OOM), `143` terminated.
 A run with no `exiting code=` line was killed outright rather than crashing.
 
 ## Development
@@ -191,7 +194,7 @@ This bumps the version in `.version`, `package.json` and `README.md`, updates `C
 
 ### Native MCP Server
 
-To use the native MCP server (without Docker), update `.claude/settings.json`:
+To use the native MCP server (without Docker), update `.mcp.json`:
 
 ```json
 {
@@ -216,6 +219,7 @@ To use the native MCP server (without Docker), update `.claude/settings.json`:
 ├── config/                 # Configuration
 │   ├── sources.yml         # News sources
 │   └── delivery.yml        # Output settings
+├── .mcp.json               # MCP server: docker run with its mounts
 ├── .claude/skills/         # Claude Code skills
 │   ├── ai-digest/          # /ai-digest — run the full digest pipeline
 │   ├── add-source/         # /add-source — add a new source interactively

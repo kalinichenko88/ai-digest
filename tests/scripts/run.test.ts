@@ -1,5 +1,6 @@
 import { execFileSync, spawnSync } from 'node:child_process';
 import {
+  cpSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -9,7 +10,7 @@ import {
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, onTestFinished } from 'vitest';
 
 import { loadSourcesConfig } from '../../src/config.js';
 
@@ -72,6 +73,40 @@ describe('run.sh update: merge of sources.yml', () => {
   );
 });
 
+describe('run.sh update: the files of the release', () => {
+  it('installs the .mcp.json of the release archive, which the install did not have', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'ai-digest-'));
+    const install = join(dir, 'install');
+    const helper = join(dir, 'helper', 'apply-update.sh');
+    onTestFinished(() => {
+      rmSync(dir, { recursive: true });
+    });
+    // The archive of a release, built as CI builds it, here into dir.
+    const archive = execFileSync(
+      'bash',
+      [join(ROOT, 'scripts', 'build-archive.sh'), '0.0.0-test'],
+      { cwd: dir, encoding: 'utf8' },
+    ).trim();
+    mkdirSync(join(install, '.claude', 'skills'), { recursive: true });
+    cpSync(join(ROOT, 'config'), join(install, 'config'), { recursive: true });
+    mkdirSync(join(dir, 'bin'));
+    mkdirSync(join(dir, 'helper'));
+    writeFileSync(join(dir, 'bin', 'docker'), '#!/bin/sh\n', { mode: 0o755 });
+    writeFileSync(helper, updateHelper());
+    execFileSync('tar', ['-xzf', join(dir, archive), '-C', dir]);
+
+    execFileSync(
+      'bash',
+      [helper, join(dir, 'ai-digest'), install, '0.0.0', 'owner/repo'],
+      { env: { ...process.env, PATH: `${dir}/bin:${process.env.PATH}` } },
+    );
+
+    expect(readFileSync(join(install, '.mcp.json'), 'utf8')).toBe(
+      readFileSync(join(ROOT, '.mcp.json'), 'utf8'),
+    );
+  });
+});
+
 // yq: the path of a yq program, whose folder goes first on PATH.
 function runMerge(released: string, installed: string, yq?: string) {
   const dir = mkdtempSync(join(tmpdir(), 'ai-digest-'));
@@ -104,11 +139,17 @@ function runMerge(released: string, installed: string, yq?: string) {
   }
 }
 
-// The update helper is a heredoc in run.sh. Its start, up to the copy of the files, is the config merge.
+// The start of the update helper, up to the copy of the files, is the config merge.
 function mergeScript(): string {
+  return updateHelper().split('# --- Replace non-config files ---')[0];
+}
+
+// The update helper is a heredoc in run.sh. run.sh update writes it to a
+// folder of its own, which it deletes at exit, and runs it.
+function updateHelper(): string {
   const helper = readFileSync(join(ROOT, 'scripts', 'run.sh'), 'utf8').split(
     "<< 'HELPER'\n",
   )[1];
 
-  return helper.split('# --- Replace non-config files ---')[0];
+  return helper.split('\nHELPER\n')[0];
 }
