@@ -48,15 +48,18 @@ describe('install.sh: the Docker image', () => {
 });
 
 describe('install.sh: the download of the latest release', () => {
-  // curl exits 6 when it cannot resolve the host, as with no network.
   it('stops with its message when the call for the latest release fails', () => {
-    const { status, output, docker } = install('remote', '9.9.9', 'exit 6');
+    const { status, output, docker } = install('remote', '9.9.9', OFFLINE_CURL);
 
+    expect(output).toContain('curl: (6) Could not resolve host');
     expect(output).toContain('Could not find latest release');
     expect(status).toBe(1);
     expect(docker).toEqual([]);
   });
 });
+
+// A curl with no network: exit 6, and with -S its own error, as the real one.
+const OFFLINE_CURL = `for arg; do case $arg in -[!-]*S*) echo 'curl: (6) Could not resolve host: api.github.com' >&2 ;; esac; done; exit 6`;
 
 // A curl that serves a release of the GitHub API, then its archive.
 const CURL = `case "$*" in

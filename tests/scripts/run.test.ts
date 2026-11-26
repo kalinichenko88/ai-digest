@@ -25,6 +25,9 @@ const SHIPPED: Record<string, string> = {
   'run.sh': 'scripts/run.sh',
 };
 
+// A curl with no network: exit 6, and with -S its own error, as the real one.
+const OFFLINE_CURL = `for arg; do case $arg in -[!-]*S*) echo 'curl: (6) Could not resolve host: api.github.com' >&2 ;; esac; done; exit 6`;
+
 describe('run.sh update', () => {
   it('replaces each file of the install that the release ships, then deletes the download', () => {
     const { dir, install, status } = update();
@@ -88,21 +91,35 @@ describe('run.sh update', () => {
     );
   });
 
-  // curl exits 6 when it cannot resolve the host, as with no network.
+  // Stderr is no terminal here, so run.sh sends it to logs/run.log.
   it.each([
     [
       'the curl with the GITHUB_TOKEN of .env',
-      { curl: 'exit 6', env: 'GITHUB_TOKEN=ghp_test\n' },
+      { curl: OFFLINE_CURL, env: 'GITHUB_TOKEN=ghp_test\n' },
+      'curl: (6) Could not resolve host',
     ],
-    ['gh api', { gh: '[ "$1" = auth ] || exit 1' }],
-    ['the curl with no token', { curl: 'exit 6' }],
+    [
+      'gh api',
+      {
+        gh: `[ "$1" = auth ] && exit 0; echo 'error connecting to api.github.com' >&2; exit 1`,
+      },
+      'error connecting to api.github.com',
+    ],
+    [
+      'the curl with no token',
+      { curl: OFFLINE_CURL },
+      'curl: (6) Could not resolve host',
+    ],
   ])(
     'stops with its message when the call for the latest release fails: %s',
-    (_, stubs) => {
-      const { status, stdout } = update(stubs);
+    (_, stubs, error) => {
+      const { install, status, stdout } = update(stubs);
 
       expect(stdout).toContain('Could not fetch latest version');
       expect(status).toBe(1);
+      expect(readFileSync(join(install, 'logs', 'run.log'), 'utf8')).toContain(
+        error,
+      );
     },
   );
 });
