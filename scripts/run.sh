@@ -111,8 +111,7 @@ warn()  { echo -e "${YELLOW}!${NC} $1"; }
 if command -v yq &>/dev/null; then
   # sources.yml: append the new sources that the user config does not have
   # rss holds mappings: match them by name
-  NEW_NAMES=$(yq ".rss[].name" "${NEW_DIR}/config/sources.yml" 2>/dev/null || true)
-  for name in $NEW_NAMES; do
+  for name in $(yq ".rss[].name" "${NEW_DIR}/config/sources.yml" 2>/dev/null || true); do
     EXISTS=$(yq ".rss[] | select(.name == \"$name\")" "${TARGET_DIR}/config/sources.yml" 2>/dev/null || true)
     if [ -z "$EXISTS" ]; then
       YQ_TMP=$(mktemp)
