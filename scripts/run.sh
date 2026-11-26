@@ -195,7 +195,7 @@ AI_DIGEST_OUTPUT="$(cd "$AI_DIGEST_OUTPUT" && pwd)"
 # Claude Code starts no MCP server: fetch the one of the installed version.
 if [ ! -f .mcp.json ]; then
   MCP_JSON_URL="https://raw.githubusercontent.com/${REPO}/v$(cat .version)/.mcp.json"
-  if ! curl -fsSL "$MCP_JSON_URL" -o .mcp.json; then
+  if ! curl -fsSL --max-time 15 "$MCP_JSON_URL" -o .mcp.json; then
     rm -f .mcp.json
     runlog "no .mcp.json, and its download failed: $MCP_JSON_URL"
     exit 4

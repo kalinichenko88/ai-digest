@@ -31,11 +31,16 @@ Data flow of one run:
    back for deduplication.
 
 Two things ship: the Docker image on GHCR (the server and the default
-config), and a tarball on GitHub Releases (the skills, `settings.json`,
-`.mcp.json`, the config templates, `run.sh`, `install.sh`). `run.sh update`
-replaces the tarball files and merges new sources into the person's
-`sources.yml`. The update helper of v0.1.8 and older does not copy
-`.mcp.json`; the new `run.sh` downloads it from the tag of `.version`.
+config), and a tarball on GitHub Releases with the files that
+`scripts/build-archive.sh` copies: the skills `ai-digest`, `add-source` and
+`validate-sources` (not `release`), `settings.json`, `.mcp.json`, the config
+templates, `run.sh`, `install.sh`, `CLAUDE.md`, `README.md`, `CHANGELOG.md`,
+`.env.example` and `.version`. `run.sh update` replaces the three skills,
+`settings.json`, `.mcp.json`, `run.sh`, `install.sh`, `README.md` and
+`.version`, and merges new sources into the person's `sources.yml`. It does
+not replace `CLAUDE.md`, `CHANGELOG.md`, `.env.example` or `delivery.yml`.
+The update helper of v0.1.8 and older does not copy `.mcp.json`; the new
+`run.sh` downloads it from the tag of `.version`.
 
 ## Codemap
 
@@ -59,7 +64,8 @@ tests/                      vitest, one file per src file; fixtures/digests
                             download of .mcp.json, exits 3 and 4
 .claude/skills/             the pipeline and the user commands, as prompts
 .mcp.json                   wires the MCP server: docker run with mounts;
-                            Claude Code reads servers only from this file
+                            Claude Code reads project servers from this
+                            file, not from settings.json
 .claude/settings.json       permissions only
 .claude/CLAUDE.md           instructions for work on this repo; not shipped
 CLAUDE.md                   the reader's context: stack, interests, topics
