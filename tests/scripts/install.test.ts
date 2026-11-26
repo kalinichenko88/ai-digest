@@ -98,8 +98,7 @@ function install(
     join(dir, 'archive'),
     'ai-digest',
   ]);
-  const stubs = { docker: 'echo "$@" >> "$0.calls"', curl };
-  writeStubs(bin, stubs);
+  writeStubs(bin, { docker: 'echo "$@" >> "$0.calls"', curl });
   // The questions read /dev/tty, which a test has not: one empty line answers each.
   writeFileSync(join(dir, 'answers'), '\n');
   const script = readFileSync(join(ROOT, 'scripts', 'install.sh'), 'utf8');

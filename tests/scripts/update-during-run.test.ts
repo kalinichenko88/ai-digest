@@ -50,15 +50,14 @@ describe('apply-update.sh: the run.sh of a digest run that waits for claude', ()
       script.replace('\n', `\n#${'-'.repeat(script.length)}\n`),
     );
     execFileSync('mkfifo', [go]);
-    const stubs = {
+    writeStubs(bin, {
       // Reads the fifo until the test closes it.
       claude: `cat '${go}'`,
       docker: 'exit 0',
       // Not the Go yq: the helper skips the merge of sources.yml.
       yq: 'exit 1',
       osascript: 'exit 0',
-    };
-    writeStubs(bin, stubs);
+    });
     const env = {
       ...process.env,
       HOME: dir,

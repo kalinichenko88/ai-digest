@@ -96,15 +96,14 @@ function prepare(delivery: string, install: Install) {
   if (install.download === undefined) {
     copyFileSync(join(ROOT, '.mcp.json'), join(dir, '.mcp.json'));
   }
-  const stubs = {
+  writeStubs(bin, {
     claude: install.claude ?? `printf %s "$AI_DIGEST_OUTPUT" > '${dir}/output'`,
     curl: CURL,
     // Records the notification, and shows none on the Mac of the test.
     osascript: 'echo "$@" > "$0.args"',
     ...(install.docker === null ? {} : { docker: install.docker ?? 'exit 0' }),
     ...(install.tail === undefined ? {} : { tail: install.tail }),
-  };
-  writeStubs(bin, stubs);
+  });
   if (typeof install.download === 'string') {
     writeFileSync(join(bin, 'curl.body'), install.download);
   }
