@@ -184,7 +184,7 @@ Use the `/release` skill in Claude Code to create a new release:
 /release 1.2.0
 ```
 
-This bumps the version in `package.json`, generates a changelog, creates a git tag, and publishes a GitHub Release.
+This bumps the version in `.version`, `package.json` and `README.md`, updates `CHANGELOG.md`, commits and tags the release, pushes it, and creates a draft GitHub Release. CI then builds the image and the archive and publishes the release.
 
 ### Native MCP Server
 
