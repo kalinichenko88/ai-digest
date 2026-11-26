@@ -3,7 +3,7 @@
 # run.sh update extracts the latest release into a temp folder and runs the
 # apply-update.sh of that release, so the new version decides what it merges
 # and copies. The run.sh that calls it can be older than this file: keep the
-# four arguments (docs/adr/0002-run-the-update-helper-of-the-new-release.md).
+# four arguments (ADR 0002, in docs/adr/ of the repository).
 set -euo pipefail
 
 NEW_DIR="$1"
@@ -61,6 +61,10 @@ cp "${NEW_DIR}/install.sh" "${TARGET_DIR}/install.sh"
 chmod +x "${TARGET_DIR}/install.sh"
 info "install.sh updated"
 
+# Not run from the install, but install.sh leaves it there: keep it current
+cp "${NEW_DIR}/apply-update.sh" "${TARGET_DIR}/apply-update.sh"
+info "apply-update.sh updated"
+
 cp "${NEW_DIR}/README.md" "${TARGET_DIR}/README.md"
 info "README.md updated"
 
@@ -70,7 +74,9 @@ info "Version updated to v${LATEST}"
 # --- Pull new Docker image ---
 if command -v docker &>/dev/null; then
   echo "Pulling Docker image v${LATEST}..."
-  docker pull "ghcr.io/${REPO}:${LATEST}" || docker pull "ghcr.io/${REPO}:latest"
+  # .mcp.json runs :latest, which a pull of the version tag does not move
+  docker pull "ghcr.io/${REPO}:${LATEST}" && docker tag "ghcr.io/${REPO}:${LATEST}" "ghcr.io/${REPO}:latest" \
+    || docker pull "ghcr.io/${REPO}:latest"
   info "Docker image updated"
 else
   warn "docker not found — skipping image pull"

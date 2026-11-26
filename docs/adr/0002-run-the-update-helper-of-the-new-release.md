@@ -38,16 +38,21 @@ whole block before it runs it, and it does not read the new file.
 
 Good: the new version decides what it merges and copies, so a file that a
 release adds reaches an install at its first update. `scripts/run.sh` drops
-to 156 lines and leaves the `debt` list of I-7. The helper deletes nothing,
-so a run of it from the repository cannot delete the repository.
+to 156 lines and leaves the `debt` list of I-7. The helper deletes no
+folder, so a run of it from the repository cannot delete the repository.
 
-Bad: the four arguments of `apply-update.sh` are a contract with each
-installed `run.sh` from this version on: a later release must accept them.
-An archive with no `apply-update.sh` stops `run.sh update` with an error.
-The first update from v0.1.8 or older still runs the old heredoc; only the
-update after it runs the helper of the new release. `run.sh update` runs
-code of the downloaded release at once; before, the next run of the copied
-`run.sh` ran it, so the update trusts the release no more than before.
+Bad: each installed `run.sh` from this version on keeps a contract with
+every later release. The asset name holds `tar.gz`, the archive has one top
+folder `ai-digest/`, `apply-update.sh` is at its root, and the helper takes
+the four arguments and runs on bash 3.2, the bash of macOS. A release that
+breaks one of them stops `run.sh update`. The check and the download stay in
+`run.sh`, so a change to them still reaches an install one update late. The
+first update from v0.1.8 or older still runs the old heredoc; only the
+update after it runs the helper of the new release. `scripts/run.sh` has 4
+lines of room under I-7, and the last four fixes to it added 5, 1, 8 and 16
+lines. `run.sh update` runs code of the downloaded release at once; before,
+the next run of the copied `run.sh` ran it, so the update trusts the
+release no more than before.
 
 ## Invariants
 
@@ -56,6 +61,7 @@ None. `scripts/run.sh` leaves the `debt` list of I-7.
 ## Confirmation
 
 `tests/scripts/run.test.ts` builds the archive with
-`scripts/build-archive.sh`, runs `run.sh update` on it with stubs for
-`curl`, `gh` and `docker`, and checks the installed `.mcp.json` and that the
-download is deleted.
+`scripts/build-archive.sh` and runs `run.sh update` on it with stubs for
+`curl`, `gh`, `docker` and `claude`. It checks the installed `.mcp.json` and
+`apply-update.sh`, that the download is deleted, and that the launcher after
+the update block does not start Claude.

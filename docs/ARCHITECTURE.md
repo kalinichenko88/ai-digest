@@ -36,9 +36,10 @@ config), and a tarball on GitHub Releases with the files that
 file ships only with one, and the `release` skill does not ship. `run.sh
 update` downloads the latest release and runs the update helper of that
 release, `scripts/apply-update.sh` (ADR 0002). The helper replaces the files
-that it copies, and, with the Go `yq`, merges new sources into the person's
-`sources.yml`. It keeps every other file, as the person's `CLAUDE.md` and
-`delivery.yml`. In v0.1.8 and older, the helper is a heredoc in the installed
+that it copies, itself too, and, with the Go `yq`, merges new sources into
+the person's `sources.yml`. It pulls the image of the release and tags it
+`:latest`, the tag that `.mcp.json` runs. It keeps every other file, as the
+person's `CLAUDE.md` and `delivery.yml`. In v0.1.8 and older, the helper is a heredoc in the installed
 `run.sh`: the first update from such a version runs that old helper, which
 does not copy `.mcp.json`, so the new `run.sh` downloads it from the tag of
 `.version`.
@@ -59,9 +60,9 @@ src/tools/                  one file per tool capability
   validate-sources.ts       sources.yml structure, URL reachability
 src/utils/                  pure string functions: normalize, similarity
 tests/                      vitest, one file per src file; fixtures/digests
-  scripts/run.test.ts       run.sh update: the sources.yml merge of
-                            apply-update.sh, with yq, and the whole update
-                            from a real archive
+  scripts/apply-update.test.ts  the sources.yml merge of apply-update.sh,
+                            with yq
+  scripts/run.test.ts       run.sh update, whole, from a real archive
   scripts/run-launch.test.ts  the launcher: the mount of output_path, the
                             download of .mcp.json, exits 3 and 4
 .claude/skills/             the pipeline and the user commands, as prompts
@@ -142,17 +143,18 @@ which uses `utils/`.
   tests write real files under `tests/fixtures/config/` and delete them.
   Two exceptions: `tests/fetch-previous-urls.test.ts` also checks the
   Step 7 digest template of the `ai-digest` skill, which shapes the files
-  that module reads back. `tests/scripts/` tests `scripts/run.sh`, one file
-  per job of the script. `run.test.ts` runs the `sources.yml` merge of
-  `scripts/apply-update.sh` with the Go `yq`, and checks that the Python `yq`
-  (`pip install yq`) skips the merge. It runs in CI, which installs both.
-  Locally, each case runs only where its `yq` is: the Go one on `PATH`, the
-  Python one by its path in `PYTHON_YQ`. `run-launch.test.ts` runs the
-  launcher with a stub `claude`, and expands the `docker run` arguments of
-  `.mcp.json` with the environment that `claude` got. `run.test.ts` also
-  builds the release archive with `build-archive.sh` and runs `run.sh
-  update` on it, with stubs for `curl`, `gh` and `docker`, and checks that
-  the download is deleted.
+  that module reads back. `tests/scripts/` tests `scripts/run.sh` and
+  `scripts/apply-update.sh`, one file per job. `apply-update.test.ts` runs
+  the `sources.yml` merge of `scripts/apply-update.sh` with the Go `yq`, and
+  checks that the Python `yq` (`pip install yq`) skips the merge. It runs in
+  CI, which installs both. Locally, each case runs only where its `yq` is:
+  the Go one on `PATH`, the Python one by its path in `PYTHON_YQ`.
+  `run-launch.test.ts` runs the launcher with a stub `claude`, and expands
+  the `docker run` arguments of `.mcp.json` with the environment that
+  `claude` got. `run.test.ts` builds the release archive with
+  `build-archive.sh` and runs `run.sh update` on it, with stubs for `curl`,
+  `gh`, `docker` and `claude`. It checks the installed files, the image tag,
+  the deleted download, and that the launcher does not start.
 
 ## Invariants
 
