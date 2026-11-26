@@ -172,6 +172,9 @@ npm test
 # Run tests in watch mode
 npm run test:watch
 
+# Typecheck src and tests
+npx tsc --noEmit
+
 # Lint and format
 npx @biomejs/biome check --write
 ```
