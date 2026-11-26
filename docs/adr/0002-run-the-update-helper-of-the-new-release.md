@@ -3,6 +3,14 @@
 - Status: accepted
 - Date: 2026-11-26
 
+## Updates
+
+- 2026-11-26 #45: Consequences. Was: "has 4 lines of room under I-7, and the last four fixes to it added 5, 1, 8 and 16 lines".
+- 2026-11-26 #44: Decision. Was: "The helper copies a new `run.sh` over
+  the one that bash runs, so `run.sh` runs the helper inside its `if` block
+  and exits in that block: bash has read the whole block before it runs it,
+  and it does not read the new file."
+
 ## Context
 
 `run.sh update` downloads the latest release and installs it with a helper:
@@ -30,9 +38,10 @@ We will ship the helper as `apply-update.sh` at the root of the archive.
 `run.sh update` extracts the release into a temp folder and runs
 `bash <release>/apply-update.sh <release> <install> <version> <owner/repo>`.
 `run.sh` deletes the temp folder at exit with an `EXIT` trap. The helper
-copies a new `run.sh` over the one that bash runs, so `run.sh` runs the
-helper inside its `if` block and exits in that block: bash has read the
-whole block before it runs it, and it does not read the new file.
+replaces the `run.sh` that bash runs with a copy beside it and a rename, so
+a bash that runs the old file keeps it. `run.sh` runs the helper inside its
+`if` block and exits in that block: bash has read the whole block before it
+runs it, and it does not go on into the launcher.
 
 ## Consequences
 
@@ -48,9 +57,9 @@ the four arguments and runs on bash 3.2, the bash of macOS. A release that
 breaks one of them stops `run.sh update`. The check and the download stay in
 `run.sh`, so a change to them still reaches an install one update late. The
 first update from v0.1.8 or older still runs the old heredoc; only the
-update after it runs the helper of the new release. `scripts/run.sh` has 4
-lines of room under I-7, and the last four fixes to it added 5, 1, 8 and 16
-lines. `run.sh update` runs code of the downloaded release at once; before,
+update after it runs the helper of the new release. `scripts/run.sh` has 3
+lines of room under I-7, and the last five fixes to it added 5, 1, 8, 16
+and 1 lines. `run.sh update` runs code of the downloaded release at once; before,
 the next run of the copied `run.sh` ran it, so the update trusts the
 release no more than before.
 
