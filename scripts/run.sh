@@ -42,9 +42,8 @@ if [ "${1:-}" = "update" ]; then
   [ -f "${PROJECT_DIR}/.version" ] || error "No .version file found. Is this an ai-digest installation?"
   CURRENT="$(cat "${PROJECT_DIR}/.version")"
 
-  # Fetch latest release: token from .env → gh auth → unauthenticated curl.
-  # || true here and on LATEST: with set -e, a failed call, or an answer with
-  # no tag_name for grep, would exit before the check of LATEST prints why.
+  # Fetch latest release: token from .env → gh auth → unauthenticated curl
+  # || true, also on LATEST: a failed call or no tag_name reaches the error below, not set -e
   GITHUB_TOKEN_VAL=$(grep -E '^GITHUB_TOKEN=' "${PROJECT_DIR}/.env" 2>/dev/null | cut -d '=' -f2- || true)
   if [ -n "${GITHUB_TOKEN_VAL}" ]; then
     RELEASE_JSON=$(curl -fsS -H "Authorization: token ${GITHUB_TOKEN_VAL}" "https://api.github.com/repos/${REPO}/releases/latest" || true)
