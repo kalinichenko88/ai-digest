@@ -75,7 +75,7 @@ notification: true      # macOS notification when done
 
 > **Tip:** Set `output_path` to a folder inside your Obsidian vault (e.g. `~/Obsidian/Digests`) to read digests directly in Obsidian. If you have Obsidian Sync enabled, digests will be available on all your devices.
 
-> **Note:** To skip news that earlier digests already covered, the MCP server reads the digests of the last days in `output_path`. In the Docker setup, `run.sh` mounts that folder into the container, read-only. Start each run with `run.sh`: a run started another way logs a warning and does not compare with earlier days. Give `output_path` as `~/…` or as an absolute path, in a folder that Docker can mount: with Docker Desktop or colima, a folder under your home folder works by default.
+> **Note:** To skip news that earlier digests already covered, the MCP server reads the digests of the last days in `output_path`. In the Docker setup, `run.sh` passes that folder to `.claude/settings.json`, which mounts it into the container, read-only. So in that setup, start each run with `run.sh`: a run started another way logs a warning and does not compare with earlier days. Give `output_path` as `~/…` or as an absolute path, in a folder that Docker can mount: with Docker Desktop or colima, a folder under your home folder works by default.
 
 ### 5. Set up personal context
 

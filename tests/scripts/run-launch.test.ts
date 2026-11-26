@@ -82,7 +82,9 @@ function dockerArgs(env: Record<string, string>): string[] {
     return typeof arg === 'string';
   };
   if (!Array.isArray(args) || !args.every(isText)) {
-    throw new Error('.claude/settings.json has no args for ai-digest-mcp');
+    throw new Error(
+      'ai-digest-mcp in .claude/settings.json: args must be strings',
+    );
   }
 
   return args.map((arg) => {
