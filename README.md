@@ -31,11 +31,11 @@ curl -sL https://github.com/kalinichenko88/ai-digest/releases/latest/download/in
 
 The update adds the new sources of the release to your `config/sources.yml` with the Go [yq](https://github.com/mikefarah/yq) (`brew install yq`). Without it, or with the Python `yq` of pip or apt, the update skips this merge and leaves your configs as they are.
 
-When the pull of the Docker image fails, for example because Docker is not running, the update stops before it writes the new version. Start Docker and run `./run.sh update` again.
+When the pull of the Docker image fails, for example because Docker is not running, the update stops before it changes a file. Start Docker and run `./run.sh update` again. For the first update from v0.1.8 and older, see below.
 
 Claude Code reads the MCP server from `.mcp.json`. The update of v0.1.8 and older does not bring that file, so the next run of `run.sh` downloads the `.mcp.json` of your installed version from GitHub, once.
 
-The update of v0.1.8 and older also leaves the `:latest` image that `.mcp.json` runs as it was. After that update, run this once in the install folder. It takes the image of your new version and tags it `:latest`:
+The update of v0.1.8 and older also leaves the `:latest` image that `.mcp.json` runs as it was, and it writes the new version before its pull: after a failed pull, `./run.sh update` says that you are up to date. After that update, also when its pull failed, run this once in the install folder. It takes the image of your new version and tags it `:latest`:
 
 ```bash
 v=$(cat .version)

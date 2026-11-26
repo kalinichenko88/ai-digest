@@ -11,11 +11,27 @@ TARGET_DIR="$2"
 LATEST="$3"
 REPO="$4"
 
+IMAGE="ghcr.io/${REPO}"
+
 GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
+RED='\033[0;31m'
 NC='\033[0m'
 info()  { echo -e "${GREEN}✓${NC} $1"; }
 warn()  { echo -e "${YELLOW}!${NC} $1"; }
+error() { echo -e "${RED}✗${NC} $1"; exit 1; }
+
+# --- Pull the Docker image of this release ---
+# First, so that a failed pull changes nothing and the next update runs again.
+# By the version tag: CI moves :latest before it publishes the release.
+if command -v docker &>/dev/null; then
+  echo "Pulling Docker image ${IMAGE}:${LATEST}..."
+  docker pull "${IMAGE}:${LATEST}" \
+    || error "Could not pull ${IMAGE}:${LATEST}, so nothing changed. Start Docker and run ./run.sh update again."
+  info "Docker image pulled"
+else
+  warn "docker not found — skipping image pull"
+fi
 
 # --- Merge configs with yq ---
 # Only the Go yq (mikefarah): the Python yq of pip prints strings in quotes, which breaks the queries
@@ -68,17 +84,10 @@ info "apply-update.sh updated"
 cp "${NEW_DIR}/README.md" "${TARGET_DIR}/README.md"
 info "README.md updated"
 
-# --- Pull new Docker image ---
-# Before .version: when the pull fails, the next update runs again and pulls
+# .mcp.json runs :latest: move it to the image of this release, with the files
 if command -v docker &>/dev/null; then
-  echo "Pulling Docker image ghcr.io/${REPO}:${LATEST}..."
-  # By the version tag of this release: CI moves :latest before it publishes
-  # the release. .mcp.json runs :latest, which a pull of the version does not move.
-  docker pull "ghcr.io/${REPO}:${LATEST}"
-  docker tag "ghcr.io/${REPO}:${LATEST}" "ghcr.io/${REPO}:latest"
-  info "Docker image updated"
-else
-  warn "docker not found — skipping image pull"
+  docker tag "${IMAGE}:${LATEST}" "${IMAGE}:latest"
+  info "Docker image ${IMAGE}:${LATEST} tagged latest"
 fi
 
 cp "${NEW_DIR}/.version" "${TARGET_DIR}/.version"

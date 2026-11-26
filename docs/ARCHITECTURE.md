@@ -35,18 +35,18 @@ config), and a tarball on GitHub Releases with the files that
 `scripts/build-archive.sh` copies, each by its own `cp` line: a new skill or
 file ships only with one, and the `release` skill does not ship. `run.sh
 update` downloads the latest release and runs the update helper of that
-release, `scripts/apply-update.sh` (ADR 0002). The helper replaces the files
-that it copies, itself too, and, with the Go `yq`, merges new sources into
-the person's `sources.yml`. It pulls the image by the version tag, which
-matches `.version`, and tags it `:latest`, the tag that `.mcp.json` runs. CI
-moves `:latest` before it publishes the release, so the helper does not pull
-it. Only then does the helper write `.version`, so a failed pull leaves the
-update to run again. It keeps every other file,
+release, `scripts/apply-update.sh` (ADR 0002). The helper first pulls the
+image by the version tag of the release, not `:latest`, which CI moves
+before it publishes the release. So a failed pull changes nothing, and the
+next update runs again. Then the helper replaces the files that it copies,
+itself too, and, with the Go `yq`, merges new sources into the person's
+`sources.yml`. Last, it tags the image `:latest`, the tag that `.mcp.json`
+runs, and writes `.version`. It keeps every other file,
 as the person's `CLAUDE.md` and `delivery.yml`. In v0.1.8 and older, the
 helper is a heredoc in the installed `run.sh`. The first update from such a
 version runs that old helper: it does not copy `.mcp.json`, so the new
 `run.sh` downloads it from the tag of `.version`, and it does not move
-`:latest`, so the README asks for one `docker pull`.
+`:latest`, so the README gives the commands that do it, once.
 
 ## Codemap
 
