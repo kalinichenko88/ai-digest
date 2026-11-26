@@ -239,7 +239,7 @@ TAIL_PID=$!
 # Wait for Claude, then stop tail. With ||, set -e does not end a failed run here.
 EXIT_CODE=0
 wait $CLAUDE_PID || EXIT_CODE=$?
-kill $TAIL_PID 2>/dev/null
+kill $TAIL_PID 2>/dev/null || true
 
 END_TIME=$(date +%s)
 ELAPSED=$(( END_TIME - START_TIME ))

@@ -83,8 +83,8 @@ describe('run.sh: the MCP server in .mcp.json', () => {
   });
 });
 
-describe('run.sh: a failed Claude run', () => {
-  it('stops the tail, logs the exit code, notifies, and exits with it', () => {
+describe('run.sh: the end of the run', () => {
+  it('stops the tail, logs the exit code, notifies, and exits with it, when claude fails', () => {
     const { dir, status, error } = launch(DELIVERY, { claude: 'exit 9' });
     const logs = join(dir, 'logs');
     const dayLog = readdirSync(logs).find((name) => {
@@ -102,6 +102,19 @@ describe('run.sh: a failed Claude run', () => {
     expect(read(join(logs, 'run.log'))).toContain('finished exit=9');
     expect(read(join(dir, 'bin', 'osascript.args'))).toContain(
       'with title "ai-digest failed"',
+    );
+  });
+
+  it('logs the end when its tail -f has stopped already', () => {
+    // The sleep lets bash reap the tail before wait returns.
+    const { dir, status } = launch(DELIVERY, {
+      claude: 'sleep 0.2',
+      tail: 'exit 0',
+    });
+
+    expect(status).toBe(0);
+    expect(readFileSync(join(dir, 'logs', 'run.log'), 'utf8')).toContain(
+      'finished exit=0',
     );
   });
 });

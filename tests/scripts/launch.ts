@@ -35,6 +35,7 @@ export function launch(delivery: string, install: Install = {}) {
     curl: CURL,
     // Records the notification, and shows none on the Mac of the test.
     osascript: 'echo "$@" > "$0.args"',
+    ...(install.tail === undefined ? {} : { tail: install.tail }),
   };
   for (const [name, body] of Object.entries(stubs)) {
     writeFileSync(join(bin, name), `#!/bin/sh\n${body}\n`, { mode: 0o755 });
@@ -48,6 +49,10 @@ export function launch(delivery: string, install: Install = {}) {
     env: { ...process.env, HOME: home, PATH: `${bin}:${process.env.PATH}` },
     timeout: 5_000,
   });
+  if (error) {
+    // The timeout ends bash only: stop the tail -f of its day log too.
+    spawnSync('pkill', ['-f', dir]);
+  }
   const args = () => {
     const output = readFileSync(join(dir, 'output'), 'utf8');
 
@@ -85,5 +90,10 @@ const CURL = `echo "$@" > "$0.args"; [ -f "$0.body" ] || exit 22
 for arg; do [ "$prev" = -o ] && cp "$0.body" "$arg"; prev=$arg; done`;
 
 // download: what curl serves (null: it fails); with one, no .mcp.json.
-// claude, docker: the body of the stub.
-type Install = { download?: string | null; docker?: string; claude?: string };
+// claude, docker, tail: the body of the stub; with no tail, the real one.
+type Install = {
+  download?: string | null;
+  docker?: string;
+  claude?: string;
+  tail?: string;
+};
