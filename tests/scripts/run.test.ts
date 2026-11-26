@@ -39,10 +39,14 @@ describe.skipIf(!hasYq && !process.env.CI)(
         ...installed.github_releases.repos,
         'biomejs/biome',
       ]);
-      expect(merged.rss).toHaveLength(installed.rss.length + 1);
-      expect(merged.rss.at(-1)?.name).toBe('new-feed');
-      expect(output).toContain('Added new source: biomejs/biome');
-      expect(output).toContain('Added new source: new-feed');
+      expect(merged.rss).toEqual([
+        ...installed.rss,
+        { name: 'new-feed', url: 'https://example.com/rss.xml', limit: 5 },
+      ]);
+      expect(output.match(/Added new source: \S+/g)).toEqual([
+        'Added new source: new-feed',
+        'Added new source: biomejs/biome',
+      ]);
     });
   },
 );
