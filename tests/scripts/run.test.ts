@@ -4,11 +4,10 @@ import {
   mkdtempSync,
   readFileSync,
   rmSync,
-  symlinkSync,
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
@@ -73,15 +72,12 @@ describe('run.sh update: merge of sources.yml', () => {
   );
 });
 
-// yq: a yq program to put first on PATH, by its path.
+// yq: the path of a yq program, whose folder goes first on PATH.
 function runMerge(released: string, installed: string, yq?: string) {
   const dir = mkdtempSync(join(tmpdir(), 'ai-digest-'));
+  const path = yq ? `${dirname(yq)}:${process.env.PATH}` : process.env.PATH;
   mkdirSync(join(dir, 'new', 'config'), { recursive: true });
   mkdirSync(join(dir, 'install', 'config'), { recursive: true });
-  mkdirSync(join(dir, 'bin'));
-  if (yq) {
-    symlinkSync(yq, join(dir, 'bin', 'yq'));
-  }
   writeFileSync(join(dir, 'new', 'config', 'sources.yml'), released);
   writeFileSync(join(dir, 'install', 'config', 'sources.yml'), installed);
   try {
@@ -96,13 +92,7 @@ function runMerge(released: string, installed: string, yq?: string) {
         '0.0.0',
         'owner/repo',
       ],
-      {
-        encoding: 'utf8',
-        env: {
-          ...process.env,
-          PATH: `${join(dir, 'bin')}:${process.env.PATH}`,
-        },
-      },
+      { encoding: 'utf8', env: { ...process.env, PATH: path } },
     );
 
     return {
