@@ -1,6 +1,7 @@
 import { execFileSync, spawnSync } from 'node:child_process';
 import {
   cpSync,
+  existsSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -74,10 +75,10 @@ describe('run.sh update: merge of sources.yml', () => {
 });
 
 describe('run.sh update: the files of the release', () => {
-  it('installs the .mcp.json of the release archive, which the install did not have', () => {
+  it('installs the release archive with its own apply-update.sh, then deletes the download', () => {
     const dir = mkdtempSync(join(tmpdir(), 'ai-digest-'));
     const install = join(dir, 'install');
-    const helper = join(dir, 'helper', 'apply-update.sh');
+    const bin = join(dir, 'bin');
     onTestFinished(() => {
       rmSync(dir, { recursive: true });
     });
@@ -89,21 +90,29 @@ describe('run.sh update: the files of the release', () => {
     ).trim();
     mkdirSync(join(install, '.claude', 'skills'), { recursive: true });
     cpSync(join(ROOT, 'config'), join(install, 'config'), { recursive: true });
-    mkdirSync(join(dir, 'bin'));
-    mkdirSync(join(dir, 'helper'));
-    writeFileSync(join(dir, 'bin', 'docker'), '#!/bin/sh\n', { mode: 0o755 });
-    writeFileSync(helper, updateHelper());
-    execFileSync('tar', ['-xzf', join(dir, archive), '-C', dir]);
+    cpSync(join(ROOT, 'scripts', 'run.sh'), join(install, 'run.sh'));
+    writeFileSync(join(install, '.version'), '0.0.0');
+    mkdirSync(bin);
+    const stubs = {
+      // The API answer for the latest release; with -o, the archive, and its path in dir/download.
+      curl: `for arg; do [ "$prev" = -o ] && cp '${join(dir, archive)}' "$arg" && echo "$arg" > '${dir}/download' && exit; prev=$arg; done
+echo '{"tag_name": "v0.0.0-test", "browser_download_url": "https://x/${archive}"}'`,
+      gh: 'exit 1',
+      docker: 'exit 0',
+    };
+    for (const [name, body] of Object.entries(stubs)) {
+      writeFileSync(join(bin, name), `#!/bin/sh\n${body}\n`, { mode: 0o755 });
+    }
 
-    execFileSync(
-      'bash',
-      [helper, join(dir, 'ai-digest'), install, '0.0.0', 'owner/repo'],
-      { env: { ...process.env, PATH: `${dir}/bin:${process.env.PATH}` } },
-    );
+    execFileSync('bash', [join(install, 'run.sh'), 'update'], {
+      env: { ...process.env, PATH: `${bin}:${process.env.PATH}` },
+    });
+    const download = readFileSync(join(dir, 'download'), 'utf8').trim();
 
     expect(readFileSync(join(install, '.mcp.json'), 'utf8')).toBe(
       readFileSync(join(ROOT, '.mcp.json'), 'utf8'),
     );
+    expect(existsSync(dirname(download)), download).toBe(false);
   });
 });
 
@@ -141,15 +150,7 @@ function runMerge(released: string, installed: string, yq?: string) {
 
 // The start of the update helper, up to the copy of the files, is the config merge.
 function mergeScript(): string {
-  return updateHelper().split('# --- Replace non-config files ---')[0];
-}
-
-// The update helper is a heredoc in run.sh. run.sh update writes it to a
-// folder of its own, which it deletes at exit, and runs it.
-function updateHelper(): string {
-  const helper = readFileSync(join(ROOT, 'scripts', 'run.sh'), 'utf8').split(
-    "<< 'HELPER'\n",
-  )[1];
-
-  return helper.split('\nHELPER\n')[0];
+  return readFileSync(join(ROOT, 'scripts', 'apply-update.sh'), 'utf8').split(
+    '# --- Replace non-config files ---',
+  )[0];
 }
