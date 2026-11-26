@@ -49,6 +49,7 @@ src/tools/                  one file per tool capability
   validate-sources.ts       sources.yml structure, URL reachability
 src/utils/                  pure string functions: normalize, similarity
 tests/                      vitest, one file per src file; fixtures/digests
+  scripts/run.test.ts       the sources.yml merge of run.sh update, with yq
 .claude/skills/             the pipeline and the user commands, as prompts
 .claude/settings.json       wires the MCP server: docker run with mounts
 .claude/CLAUDE.md           instructions for work on this repo; not shipped
@@ -109,9 +110,11 @@ which uses `utils/`.
 - Each `.test.ts` in `tests/` tests one `src/` file and mocks at the
   boundary: `vi.mock('rss-parser')`, `vi.stubGlobal('fetch')`. The config
   tests write real files under `tests/fixtures/config/` and delete them.
-  One exception: `tests/fetch-previous-urls.test.ts` also checks the
+  Two exceptions: `tests/fetch-previous-urls.test.ts` also checks the
   Step 7 digest template of the `ai-digest` skill, which shapes the files
-  that module reads back.
+  that module reads back. `tests/scripts/run.test.ts` tests a script: it
+  runs the `sources.yml` merge of the update helper in `scripts/run.sh`
+  with `yq`. It runs in CI, and locally only where `yq` is installed.
 
 ## Invariants
 
