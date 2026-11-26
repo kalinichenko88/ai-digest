@@ -12,6 +12,8 @@ import { join } from 'node:path';
 
 import { onTestFinished } from 'vitest';
 
+import { writeStubs } from './launch.js';
+
 // Runs run.sh update in an install of v0.0.0, with stubs that serve the
 // archive of v0.0.0-test, built as CI builds it.
 export function update({
@@ -43,7 +45,7 @@ export function update({
     writeFileSync(join(install, '.env'), env);
   }
   mkdirSync(bin);
-  const stubs = {
+  writeStubs(bin, {
     // The API answer for the latest release; with -o, the archive, and its path in dir/download.
     curl:
       curl ??
@@ -54,10 +56,7 @@ echo '{"tag_name": "v0.0.0-test", "browser_download_url": "https://x/${archive}"
     docker,
     // run.sh exits in its update block: the launcher after it must not start Claude.
     claude: 'touch "$0.ran"',
-  };
-  for (const [name, body] of Object.entries(stubs)) {
-    writeFileSync(join(bin, name), `#!/bin/sh\n${body}\n`, { mode: 0o755 });
-  }
+  });
 
   const { status, stdout } = spawnSync(
     'bash',

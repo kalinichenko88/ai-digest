@@ -12,6 +12,8 @@ import { join } from 'node:path';
 
 import { describe, expect, it, onTestFinished } from 'vitest';
 
+import { OFFLINE_CURL, writeStubs } from './launch.js';
+
 const ROOT = join(import.meta.dirname, '..', '..');
 const IMAGE = 'ghcr.io/kalinichenko88/ai-digest';
 
@@ -58,9 +60,6 @@ describe('install.sh: the download of the latest release', () => {
   });
 });
 
-// A curl with no network: exit 6, and with -S its own error, as the real one.
-const OFFLINE_CURL = `for arg; do case $arg in -[!-]*S*) echo 'curl: (6) Could not resolve host: api.github.com' >&2 ;; esac; done; exit 6`;
-
 // A curl that serves a release of the GitHub API, then its archive.
 const CURL = `case "$*" in
   *api.github.com*) echo '  "browser_download_url": "https://github.com/o/r/releases/download/v9.9.9/ai-digest-v9.9.9.tar.gz"' ;;
@@ -96,10 +95,7 @@ function install(
     join(dir, 'archive'),
     'ai-digest',
   ]);
-  const stubs = { docker: 'echo "$@" >> "$0.calls"', curl };
-  for (const [name, body] of Object.entries(stubs)) {
-    writeFileSync(join(bin, name), `#!/bin/sh\n${body}\n`, { mode: 0o755 });
-  }
+  writeStubs(bin, { docker: 'echo "$@" >> "$0.calls"', curl });
   // The questions read /dev/tty, which a test has not: one empty line answers each.
   writeFileSync(join(dir, 'answers'), '\n');
   const script = readFileSync(join(ROOT, 'scripts', 'install.sh'), 'utf8');

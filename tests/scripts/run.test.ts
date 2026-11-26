@@ -3,6 +3,7 @@ import { dirname, join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
+import { OFFLINE_CURL } from './launch.js';
 import { update } from './update.js';
 
 const ROOT = join(import.meta.dirname, '..', '..');
@@ -24,9 +25,6 @@ const SHIPPED: Record<string, string> = {
   'install.sh': 'scripts/install.sh',
   'run.sh': 'scripts/run.sh',
 };
-
-// A curl with no network: exit 6, and with -S its own error, as the real one.
-const OFFLINE_CURL = `for arg; do case $arg in -[!-]*S*) echo 'curl: (6) Could not resolve host: api.github.com' >&2 ;; esac; done; exit 6`;
 
 describe('run.sh update', () => {
   it('replaces each file of the install that the release ships, then deletes the download', () => {

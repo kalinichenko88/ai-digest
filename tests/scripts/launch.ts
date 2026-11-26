@@ -61,6 +61,18 @@ export function dockerArgs(dir: string, env: Record<string, string>): string[] {
   });
 }
 
+// Writes each stub as an executable shell script in bin. Each test of
+// tests/scripts/ writes its stubs with it, so a change of the shebang or the
+// mode goes here only.
+export function writeStubs(bin: string, stubs: Record<string, string>) {
+  for (const [name, body] of Object.entries(stubs)) {
+    writeFileSync(join(bin, name), `#!/bin/sh\n${body}\n`, { mode: 0o755 });
+  }
+}
+
+// A curl with no network: exit 6, and with -S its own error, as the real one.
+export const OFFLINE_CURL = `for arg; do case $arg in -[!-]*S*) echo 'curl: (6) Could not resolve host: api.github.com' >&2 ;; esac; done; exit 6`;
+
 const ROOT = join(import.meta.dirname, '..', '..');
 
 // A curl that saves curl.body as its -o file, or fails as on HTTP 404.
@@ -89,17 +101,14 @@ function prepare(delivery: string, install: Install) {
   if (install.download === undefined) {
     copyFileSync(join(ROOT, '.mcp.json'), join(dir, '.mcp.json'));
   }
-  const stubs = {
+  writeStubs(bin, {
     claude: install.claude ?? `printf %s "$AI_DIGEST_OUTPUT" > '${dir}/output'`,
     curl: CURL,
     // Records the notification, and shows none on the Mac of the test.
     osascript: 'echo "$@" > "$0.args"',
     ...(install.docker === null ? {} : { docker: install.docker ?? 'exit 0' }),
     ...(install.tail === undefined ? {} : { tail: install.tail }),
-  };
-  for (const [name, body] of Object.entries(stubs)) {
-    writeFileSync(join(bin, name), `#!/bin/sh\n${body}\n`, { mode: 0o755 });
-  }
+  });
   if (typeof install.download === 'string') {
     writeFileSync(join(bin, 'curl.body'), install.download);
   }
