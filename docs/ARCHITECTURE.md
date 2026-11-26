@@ -139,8 +139,9 @@ which uses `utils/`.
   tests write real files under `tests/fixtures/config/` and delete them.
   Two exceptions: `tests/fetch-previous-urls.test.ts` also checks the
   Step 7 digest template of the `ai-digest` skill, which shapes the files
-  that module reads back. `tests/scripts/` tests `scripts/run.sh`, one file
-  per job of the script, and `scripts/install.sh`. `run.test.ts` runs the `sources.yml` merge of the
+  that module reads back. `tests/scripts/` tests two scripts:
+  `scripts/run.sh`, one file per job of the script, and `scripts/install.sh`,
+  in `install.test.ts`. `run.test.ts` runs the `sources.yml` merge of the
   update helper with the Go `yq`, and checks that the Python `yq`
   (`pip install yq`) skips the merge. It runs in CI, which installs both.
   Locally, each case runs only where its `yq` is: the Go one on `PATH`, the
@@ -241,9 +242,10 @@ new number needs an ADR.
 - **Version.** `.version`, `package.json` and `README.md` carry it; the
   `release` skill bumps all three. The server reads `package.json` at start
   for its MCP server version. `install.sh` pulls the image by the version
-  of `.version`, not `:latest`, which CI moves before it publishes the
-  release, and tags it `:latest`, the tag that `.mcp.json` runs. With no
-  version in `.version`, it stops before its questions.
+  of `.version`, then tags that image `:latest`, the tag that `.mcp.json`
+  runs. It does not pull `:latest`: CI moves that tag before it publishes
+  the release. With no version in `.version`, `install.sh` stops before its
+  questions.
 
 ## ADRs
 
