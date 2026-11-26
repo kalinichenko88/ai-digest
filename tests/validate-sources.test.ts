@@ -44,6 +44,8 @@ describe('validateStructure', () => {
     expect(validateStructure(sources(rss, ['owner/repo']))).toEqual([]);
   });
 
+  const dup = { name: 'dup', url: 'https://a.com', limit: 5 };
+
   // Rows hold raw YAML values, so a wrong type can reach validateStructure.
   const invalid: [string, unknown[], unknown[]][] = [
     ['name must be', [{ name: '', url: 'https://a.com', limit: 10 }], []],
@@ -51,14 +53,8 @@ describe('validateStructure', () => {
     ['url must start', [{ name: 'test', url: 'ftp://bad', limit: 10 }], []],
     ['url must start', [{ name: 'test', url: 123, limit: 1 }], []],
     ['limit must be', [{ name: 'test', url: 'https://a.com', limit: 0 }], []],
-    [
-      'duplicate name',
-      [
-        { name: 'dup', url: 'https://a.com', limit: 5 },
-        { name: 'dup', url: 'https://b.com', limit: 5 },
-      ],
-      [],
-    ],
+    ['duplicate name', [dup, { ...dup, url: 'https://b.com' }], []],
+    ['duplicate url', [dup, { ...dup, name: 'other' }], []],
     ['owner/repo', [], ['just-a-name']],
     ['duplicate repo', [], ['a/b', 'a/b']],
   ];

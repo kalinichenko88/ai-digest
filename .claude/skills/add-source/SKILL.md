@@ -2,12 +2,13 @@
 name: add-source
 description: Add a new news source (RSS or GitHub release) to ai-digest config
 model: haiku
-allowed-tools: Read, Edit, WebFetch
+allowed-tools: Read, Edit, mcp__ai-digest-mcp__validate_sources
 ---
 
 # Add Source
 
-Help the user add a new source to `config/sources.yml`.
+Help the user add a new source to `config/sources.yml`. The `validate_sources`
+MCP tool checks the new entry. This skill does no checks of its own.
 
 ## Flow
 
@@ -19,21 +20,27 @@ Help the user add a new source to `config/sources.yml`.
 
 3. Read current `config/sources.yml`
 
-4. Check for duplicates before adding:
-   - **rss**: check if the same URL already exists
-   - **github_release**: check if the same repo already exists
-   - If duplicate found, tell the user and do NOT add it
-
-5. Validate the source is reachable before adding:
-   - **rss**: WebFetch the URL, check for HTTP 2xx response
-   - **github_release**: WebFetch `https://github.com/{owner}/{repo}`, check it exists
-   - If the source returns 404 or connection error, warn the user and ask whether to add it anyway
-   - If the source is reachable, proceed silently
-
-6. Append the new entry to the correct section:
+4. Append the new entry to the correct section, and write the file:
    - rss → append to `rss` array
    - github_release → append to `github_releases.repos` array
 
-7. Write the updated file
+5. Call the `validate_sources` MCP tool (no arguments). It checks the whole
+   file: duplicates (an RSS source by name and by URL, a GitHub source by
+   repo), the fields, and that each URL is reachable.
 
-8. Confirm: "Added <name/repo/account> to <section>. It will be included in the next digest run."
+6. Read the result for the new entry:
+   - `structure.errors` holds a `duplicate name` error for the new RSS entry,
+     and no other error for it: you made the name, so give it another one (as
+     `react-blog-2`), write the file, and go back to step 5.
+   - `structure.errors` holds another error that names the new entry (its
+     `rss[N]` index, its name or its repo), or `reachability` is empty (the
+     file did not load): remove the new entry, show the error, and stop.
+   - Its `reachability` item has `status: failed`: show its `detail`, and ask
+     whether to keep it. If not, remove the new entry and stop.
+   - Errors of other sources are not part of this task: say how many there
+     are, in one line, and that `/validate-sources` shows them.
+   - The tool is not available (the MCP server does not run): keep the entry,
+     and say that it is not checked and that `/validate-sources` checks it.
+   - The new entry passes: say nothing about the checks.
+
+7. Confirm: "Added <name/repo> to <section>. It will be included in the next digest run."
