@@ -38,9 +38,9 @@ update` downloads the latest release and runs the update helper of that
 release, `scripts/apply-update.sh` (ADR 0002). The helper first pulls the
 image by the version tag of the release, not `:latest`, which CI moves
 before it publishes the release. So a failed pull changes nothing, and the
-next update runs again. Then the helper replaces the files that it copies,
-itself too, and, with the Go `yq`, merges new sources into the person's
-`sources.yml`. Last, it tags the image `:latest`, the tag that `.mcp.json`
+next update runs again. Then, with the Go `yq`, the helper merges new
+sources into the person's `sources.yml`, and it replaces the files that it
+copies, itself too. Last, it tags the image `:latest`, the tag that `.mcp.json`
 runs, and writes `.version`. It keeps every other file,
 as the person's `CLAUDE.md` and `delivery.yml`. In v0.1.8 and older, the
 helper is a heredoc in the installed `run.sh`. The first update from such a

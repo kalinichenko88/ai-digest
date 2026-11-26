@@ -74,8 +74,12 @@ describe('run.sh update', () => {
     expect(readFileSync(join(dir, 'bin', 'docker.args'), 'utf8')).toBe(
       `pull ${IMAGE}:0.0.0-test\n`,
     );
-    expect(existsSync(join(install, '.mcp.json'))).toBe(false);
-    expect(existsSync(join(install, 'apply-update.sh'))).toBe(false);
+    for (const file of Object.keys(SHIPPED)) {
+      if (file === 'run.sh' || file === '.version') {
+        continue;
+      }
+      expect(existsSync(join(install, file)), file).toBe(false);
+    }
     expect(readFileSync(join(install, 'run.sh'), 'utf8')).toMatch(
       /# v0\.0\.0\n$/,
     );

@@ -72,10 +72,14 @@ describe('apply-update.sh: merge of sources.yml', () => {
   );
 });
 
-// yq: the path of a yq program, whose folder goes first on PATH.
+// yq: the path of a yq program, whose folder goes first on PATH. A stub docker
+// goes first too: the helper pulls the image before the merge.
 function runMerge(released: string, installed: string, yq?: string) {
   const dir = mkdtempSync(join(tmpdir(), 'ai-digest-'));
-  const path = yq ? `${dirname(yq)}:${process.env.PATH}` : process.env.PATH;
+  const bin = join(dir, 'bin');
+  const path = `${bin}:${yq ? `${dirname(yq)}:` : ''}${process.env.PATH}`;
+  mkdirSync(bin);
+  writeFileSync(join(bin, 'docker'), '#!/bin/sh\n', { mode: 0o755 });
   mkdirSync(join(dir, 'new', 'config'), { recursive: true });
   mkdirSync(join(dir, 'install', 'config'), { recursive: true });
   writeFileSync(join(dir, 'new', 'config', 'sources.yml'), released);
@@ -104,16 +108,10 @@ function runMerge(released: string, installed: string, yq?: string) {
   }
 }
 
-// The header of the update helper and its config merge, without the pull of
-// the image between them and the copy of the files after them.
+// The start of the update helper, up to the copy of the files: the pull of the
+// image, which runMerge stubs, and the config merge.
 function mergeScript(): string {
-  const script = readFileSync(join(ROOT, 'scripts', 'apply-update.sh'), 'utf8');
-  const header = script.split(
-    '# --- Pull the Docker image of this release ---',
+  return readFileSync(join(ROOT, 'scripts', 'apply-update.sh'), 'utf8').split(
+    '# --- Replace non-config files ---',
   )[0];
-  const merge = script
-    .split('# --- Merge configs with yq ---')[1]
-    .split('# --- Replace non-config files ---')[0];
-
-  return header + merge;
 }
