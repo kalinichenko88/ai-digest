@@ -36,17 +36,24 @@ describe('run.sh update', () => {
   });
 
   it('pulls the latest image, the tag that .mcp.json runs', () => {
-    const { dir } = update();
+    const { dir, status } = update();
 
+    expect(status).toBe(0);
     expect(readFileSync(join(dir, 'bin', 'docker.args'), 'utf8')).toContain(
       `pull ${IMAGE}:latest\n`,
     );
   });
 
   it('keeps the old version when the image pull fails, so the next update pulls again', () => {
-    const { install, status } = update('exit 1');
+    const { dir, install, status } = update('echo "$@" >> "$0.args"; exit 1');
 
-    expect(status).not.toBe(0);
+    expect(status).toBe(1);
+    expect(readFileSync(join(dir, 'bin', 'docker.args'), 'utf8')).toContain(
+      `pull ${IMAGE}:latest\n`,
+    );
+    expect(readFileSync(join(install, '.mcp.json'), 'utf8')).toBe(
+      readFileSync(join(ROOT, '.mcp.json'), 'utf8'),
+    );
     expect(readFileSync(join(install, '.version'), 'utf8')).toBe('0.0.0');
   });
 });

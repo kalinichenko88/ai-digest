@@ -71,7 +71,7 @@ info "README.md updated"
 # --- Pull new Docker image ---
 # Before .version: when the pull fails, the next update runs again and pulls
 if command -v docker &>/dev/null; then
-  echo "Pulling Docker image v${LATEST}..."
+  echo "Pulling Docker image ghcr.io/${REPO}:latest..."
   # .mcp.json runs :latest, and CI pushes it with each release
   docker pull "ghcr.io/${REPO}:latest"
   info "Docker image updated"

@@ -31,6 +31,8 @@ curl -sL https://github.com/kalinichenko88/ai-digest/releases/latest/download/in
 
 The update adds the new sources of the release to your `config/sources.yml` with the Go [yq](https://github.com/mikefarah/yq) (`brew install yq`). Without it, or with the Python `yq` of pip or apt, the update skips this merge and leaves your configs as they are.
 
+When the pull of the Docker image fails, for example because Docker is not running, the update stops before it writes the new version. Start Docker and run `./run.sh update` again.
+
 Claude Code reads the MCP server from `.mcp.json`. The update of v0.1.8 and older does not bring that file, so the next run of `run.sh` downloads the `.mcp.json` of your installed version from GitHub, once.
 
 The update of v0.1.8 and older also leaves the `:latest` image that `.mcp.json` runs as it was. After that update, pull it once: `docker pull ghcr.io/kalinichenko88/ai-digest`. Later updates pull it themselves.
