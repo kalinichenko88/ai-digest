@@ -1,17 +1,9 @@
-import { execFileSync, spawnSync } from 'node:child_process';
-import {
-  cpSync,
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from 'node:fs';
-import { tmpdir } from 'node:os';
+import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
-import { describe, expect, it, onTestFinished } from 'vitest';
+import { describe, expect, it } from 'vitest';
+
+import { update } from './update.js';
 
 const ROOT = join(import.meta.dirname, '..', '..');
 // The image that .mcp.json runs: with no tag, that is :latest.
@@ -32,6 +24,9 @@ const SHIPPED: Record<string, string> = {
   'install.sh': 'scripts/install.sh',
   'run.sh': 'scripts/run.sh',
 };
+
+// A curl with no network: exit 6, and with -S its own error, as the real one.
+const OFFLINE_CURL = `for arg; do case $arg in -[!-]*S*) echo 'curl: (6) Could not resolve host: api.github.com' >&2 ;; esac; done; exit 6`;
 
 describe('run.sh update', () => {
   it('replaces each file of the install that the release ships, then deletes the download', () => {
@@ -95,63 +90,36 @@ describe('run.sh update', () => {
       '-H Authorization: token ghp_test https://api.github.com/',
     );
   });
-});
 
-// Runs run.sh update in an install of v0.0.0, with stubs that serve the
-// archive of v0.0.0-test, built as CI builds it. docker: the body of its stub;
-// env: the .env of the install.
-function update({
-  docker = 'echo "$@" >> "$0.args"',
-  env = '',
-}: {
-  docker?: string;
-  env?: string;
-} = {}) {
-  const dir = mkdtempSync(join(tmpdir(), 'ai-digest-'));
-  const install = join(dir, 'install');
-  const bin = join(dir, 'bin');
-  onTestFinished(() => {
-    rmSync(dir, { recursive: true });
-  });
-  const archive = execFileSync(
-    'bash',
-    [join(ROOT, 'scripts', 'build-archive.sh'), '0.0.0-test'],
-    { cwd: dir, encoding: 'utf8' },
-  ).trim();
-  mkdirSync(join(install, '.claude', 'skills'), { recursive: true });
-  cpSync(join(ROOT, 'config'), join(install, 'config'), { recursive: true });
-  // An older run.sh, so that the test sees the update replace it
-  writeFileSync(
-    join(install, 'run.sh'),
-    `${readFileSync(join(ROOT, 'scripts', 'run.sh'), 'utf8')}# v0.0.0\n`,
-  );
-  writeFileSync(join(install, '.version'), '0.0.0');
-  if (env) {
-    writeFileSync(join(install, '.env'), env);
-  }
-  mkdirSync(bin);
-  const stubs = {
-    // The API answer for the latest release; with -o, the archive, and its path in dir/download.
-    curl: `echo "$@" >> "$0.args"
-for arg; do [ "$prev" = -o ] && cp '${join(dir, archive)}' "$arg" && echo "$arg" > '${dir}/download' && exit; prev=$arg; done
-echo '{"tag_name": "v0.0.0-test", "browser_download_url": "https://x/${archive}"}'`,
-    gh: 'exit 1',
-    docker,
-    // run.sh exits in its update block: the launcher after it must not start Claude.
-    claude: 'touch "$0.ran"',
-  };
-  for (const [name, body] of Object.entries(stubs)) {
-    writeFileSync(join(bin, name), `#!/bin/sh\n${body}\n`, { mode: 0o755 });
-  }
+  // Stderr is no terminal here, so run.sh sends it to logs/run.log.
+  it.each([
+    [
+      'the curl with the GITHUB_TOKEN of .env',
+      { curl: OFFLINE_CURL, env: 'GITHUB_TOKEN=ghp_test\n' },
+      'curl: (6) Could not resolve host',
+    ],
+    [
+      'gh api',
+      {
+        gh: `[ "$1" = auth ] && exit 0; echo 'error connecting to api.github.com' >&2; exit 1`,
+      },
+      'error connecting to api.github.com',
+    ],
+    [
+      'the curl with no token',
+      { curl: OFFLINE_CURL },
+      'curl: (6) Could not resolve host',
+    ],
+  ])(
+    'stops with its message when the call for the latest release fails: %s',
+    (_, stubs, error) => {
+      const { install, status, stdout } = update(stubs);
 
-  const { status, stdout } = spawnSync(
-    'bash',
-    [join(install, 'run.sh'), 'update'],
-    {
-      encoding: 'utf8',
-      env: { ...process.env, HOME: dir, PATH: `${bin}:${process.env.PATH}` },
+      expect(stdout).toContain('Could not fetch latest version');
+      expect(status).toBe(1);
+      expect(readFileSync(join(install, 'logs', 'run.log'), 'utf8')).toContain(
+        error,
+      );
     },
   );
-
-  return { dir, install, status, stdout };
-}
+});
