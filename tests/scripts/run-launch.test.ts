@@ -105,26 +105,27 @@ describe('run.sh: the end of the run', () => {
     );
   });
 
-  it('logs the end, and kills no PID of its tail -f, when the tail has stopped already', () => {
-    // claude ends after the tail, so bash reaps the tail first: its PID can be
-    // another process's by then. The kill function records each kill.
+  it('logs the end, kills no PID of its tail -f, and notifies nothing, when the tail has stopped already', () => {
+    // claude ends once bash has reaped the tail (a zombie still answers
+    // kill -0): the PID of the tail can be another process's by then. The
+    // kill function records each kill.
     const { dir, status } = launch(DELIVERY, {
-      claude:
-        'until [ -f "$(dirname "$0")/tail.pid" ]; do sleep 0.05; done; sleep 0.2',
+      claude: `pid="$(dirname "$0")/tail.pid"; until [ -s "$pid" ]; do sleep 0.05; done
+while kill -0 "$(cat "$pid")" 2>/dev/null; do sleep 0.05; done`,
       tail: 'echo $$ > "$0.pid"',
       bashEnv:
         'kill() { echo "$@" >> "$(dirname "$0")/kill.args"; builtin kill "$@"; }',
     });
     const tailPid = readFileSync(join(dir, 'bin', 'tail.pid'), 'utf8').trim();
-    const kills = join(dir, 'kill.args');
 
     expect(status).toBe(0);
     expect(readFileSync(join(dir, 'logs', 'run.log'), 'utf8')).toContain(
       'finished exit=0',
     );
-    expect(existsSync(kills) ? readFileSync(kills, 'utf8') : '').not.toMatch(
+    expect(readFileSync(join(dir, 'kill.args'), 'utf8')).not.toMatch(
       new RegExp(`\\b${tailPid}\\b`),
     );
+    expect(existsSync(join(dir, 'bin', 'osascript.args'))).toBe(false);
   });
 
   it.each([

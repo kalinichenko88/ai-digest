@@ -32,6 +32,9 @@ describe('run.sh: a signal while it waits for claude', () => {
       expect(readFileSync(join(dir, 'logs', 'run.log'), 'utf8')).toContain(
         `stopped by ${signal}`,
       );
+      expect(
+        readFileSync(join(dir, 'bin', 'osascript.args'), 'utf8'),
+      ).toContain(`exit ${code} — see logs/run.log`);
       await vi.waitFor(() => {
         expect(alive(dir), 'a claude or a tail -f stays').toEqual([]);
       });
