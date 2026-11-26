@@ -39,6 +39,9 @@ describe('install.sh: the Docker image', () => {
 
       expect(status).toBe(1);
       expect(output).toContain('.version');
+      expect(output, 'it stops before its questions').not.toContain(
+        'Digest language',
+      );
       expect(docker).toEqual([]);
     },
   );

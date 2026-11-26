@@ -2,6 +2,7 @@
 set -euo pipefail
 
 REPO="kalinichenko88/ai-digest"
+IMAGE="ghcr.io/${REPO}"
 BOLD='\033[1m'
 GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
@@ -92,14 +93,14 @@ else
   info ".env created from template"
 fi
 
-# --- Pull Docker image ---
+# --- Pull the Docker image of this release ---
+# By the version tag: CI moves :latest before it publishes the release.
 echo ""
 if command -v docker &>/dev/null; then
-  echo "Pulling Docker image ghcr.io/${REPO}:${VERSION}..."
-  # By the version tag of this release: CI moves :latest before it publishes
-  # the release. .mcp.json runs :latest, which a pull of the version does not move.
-  docker pull "ghcr.io/${REPO}:${VERSION}"
-  docker tag "ghcr.io/${REPO}:${VERSION}" "ghcr.io/${REPO}:latest"
+  echo "Pulling Docker image ${IMAGE}:${VERSION}..."
+  docker pull "${IMAGE}:${VERSION}"
+  # .mcp.json runs :latest: move it to the image of this release, with the files
+  docker tag "${IMAGE}:${VERSION}" "${IMAGE}:latest"
   info "Docker image pulled"
 else
   warn "Skipping Docker pull (docker not found)"
