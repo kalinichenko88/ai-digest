@@ -68,19 +68,19 @@ info "apply-update.sh updated"
 cp "${NEW_DIR}/README.md" "${TARGET_DIR}/README.md"
 info "README.md updated"
 
-cp "${NEW_DIR}/.version" "${TARGET_DIR}/.version"
-info "Version updated to v${LATEST}"
-
 # --- Pull new Docker image ---
+# Before .version: when the pull fails, the next update runs again and pulls
 if command -v docker &>/dev/null; then
   echo "Pulling Docker image v${LATEST}..."
-  # .mcp.json runs :latest, which a pull of the version tag does not move
-  docker pull "ghcr.io/${REPO}:${LATEST}" && docker tag "ghcr.io/${REPO}:${LATEST}" "ghcr.io/${REPO}:latest" \
-    || docker pull "ghcr.io/${REPO}:latest"
+  # .mcp.json runs :latest, and CI pushes it with each release
+  docker pull "ghcr.io/${REPO}:latest"
   info "Docker image updated"
 else
   warn "docker not found — skipping image pull"
 fi
+
+cp "${NEW_DIR}/.version" "${TARGET_DIR}/.version"
+info "Version updated to v${LATEST}"
 
 echo ""
 echo -e "${GREEN}Updated to v${LATEST}!${NC}"

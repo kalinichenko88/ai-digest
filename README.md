@@ -33,6 +33,8 @@ The update adds the new sources of the release to your `config/sources.yml` with
 
 Claude Code reads the MCP server from `.mcp.json`. The update of v0.1.8 and older does not bring that file, so the next run of `run.sh` downloads the `.mcp.json` of your installed version from GitHub, once.
 
+The update of v0.1.8 and older also leaves the `:latest` image that `.mcp.json` runs as it was. After that update, pull it once: `docker pull ghcr.io/kalinichenko88/ai-digest`. Later updates pull it themselves.
+
 ## Prerequisites
 
 - [Docker](https://docs.docker.com/get-docker/)
