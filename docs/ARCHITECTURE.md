@@ -14,13 +14,14 @@ the judgment work itself: filter by the person's interests, categorize,
 summarize, write the Markdown file, notify.
 
 The MCP server is one Node process over stdio. It normally runs in Docker:
-`.claude/settings.json` starts `docker run` with the install's `config/`
+`.mcp.json` starts `docker run` with the install's `config/`
 (read-only) and `logs/` folders mounted into the container, and the digest folder of
 `output_path`, read-only, at its host path.
 
 Data flow of one run:
 
-1. `scripts/run.sh` exports `output_path` for the mount, starts
+1. `scripts/run.sh` exports `output_path` for the mount, downloads the
+   `.mcp.json` of the installed version when the install has none, starts
    `claude -p "Run ai-digest skill"` and tails `logs/YYYY-MM-DD.md`.
 2. The skill calls `validate_sources`, then `fetch_previous_urls`, then
    `fetch_all_rss` and `fetch_github_releases`, then `check_duplicates`.
@@ -30,9 +31,11 @@ Data flow of one run:
    back for deduplication.
 
 Two things ship: the Docker image on GHCR (the server and the default
-config), and a tarball on GitHub Releases (the skills, `settings.json`, the
-config templates, `run.sh`, `install.sh`). `run.sh update` replaces the
-tarball files and merges new sources into the person's `sources.yml`.
+config), and a tarball on GitHub Releases (the skills, `settings.json`,
+`.mcp.json`, the config templates, `run.sh`, `install.sh`). `run.sh update`
+replaces the tarball files and merges new sources into the person's
+`sources.yml`. The update helper of v0.1.8 and older does not copy
+`.mcp.json`; the new `run.sh` downloads it from the tag of `.version`.
 
 ## Codemap
 
@@ -50,10 +53,14 @@ src/tools/                  one file per tool capability
   validate-sources.ts       sources.yml structure, URL reachability
 src/utils/                  pure string functions: normalize, similarity
 tests/                      vitest, one file per src file; fixtures/digests
-  scripts/run.test.ts       the sources.yml merge of run.sh update, with yq
-  scripts/run-launch.test.ts  the mount of output_path that run.sh sets up
+  scripts/run.test.ts       run.sh update: the sources.yml merge, with yq,
+                            and the files it installs from a real archive
+  scripts/run-launch.test.ts  the launcher: the mount of output_path, the
+                            download of .mcp.json, exits 3 and 4
 .claude/skills/             the pipeline and the user commands, as prompts
-.claude/settings.json       wires the MCP server: docker run with mounts
+.mcp.json                   wires the MCP server: docker run with mounts;
+                            Claude Code reads servers only from this file
+.claude/settings.json       permissions only
 .claude/CLAUDE.md           instructions for work on this repo; not shipped
 CLAUDE.md                   the reader's context: stack, interests, topics
                             to ignore; the ai-digest skill reads it, and the
@@ -76,7 +83,7 @@ two areas. Folders are by kind (`tools/`, `utils/`).
 | Sources      | `src/tools/fetch-rss.ts`, `src/tools/fetch-github-releases.ts`, `src/tools/validate-sources.ts`, `config/sources.yml`, `.claude/skills/add-source/`, `.claude/skills/validate-sources/` | the exported functions of each tool file; `src/mcp-server.ts` is their only importer              |
 | Dedup        | `src/tools/fetch-previous-urls.ts`, `src/tools/check-duplicates.ts`, `src/utils/`, the `deduplication` block of `config/delivery.yml`                                                   | the same rule                                                                                     |
 | Server       | `src/mcp-server.ts`, `src/config.ts`, `src/logger.ts`, `src/types.ts`                                                                                                                   | the MCP tool names and their JSON shapes, which `src/types.ts` states                             |
-| Distribution | `Dockerfile`, `scripts/`, `.claude/settings.json`, `.github/workflows/ci.yml`, `.claude/skills/release/`                                                                                | `install.sh`, `run.sh`, `run.sh update`                                                           |
+| Distribution | `Dockerfile`, `scripts/`, `.mcp.json`, `.claude/settings.json`, `.github/workflows/ci.yml`, `.claude/skills/release/`                                                                   | `install.sh`, `run.sh`, `run.sh update`                                                           |
 
 Dependencies point one way: `mcp-server.ts` → `tools/` → `utils/` and
 `types.ts`. `config.ts` and `logger.ts` are leaves that any file may import.
@@ -106,11 +113,11 @@ which uses `utils/`.
   `config/*.yml` takes effect on the next call, with no restart.
 - Dates are local, not UTC. `toLocaleDateString('sv-SE')` gives
   `YYYY-MM-DD` in local time; a digest file name is the person's calendar
-  day. For this, `.claude/settings.json` passes `TZ` and mounts
+  day. For this, `.mcp.json` passes `TZ` and mounts
   `/etc/localtime` into the container.
 - The container sees the digest folder at its host path. `scripts/run.sh`
   exports `output_path`, with `~` expanded, as `AI_DIGEST_OUTPUT` and
-  creates the folder. `.claude/settings.json` mounts it read-only at the
+  creates the folder. `.mcp.json` mounts it read-only at the
   same path and passes `HOME`, so the server expands an `output_path` that
   starts with `~/` or `/` to the same path as on the host. A relative
   `output_path` resolves against `/app` in the container and misses the
@@ -133,7 +140,9 @@ which uses `utils/`.
   Locally, each case runs only where its `yq` is: the Go one on `PATH`, the
   Python one by its path in `PYTHON_YQ`. `run-launch.test.ts` runs the
   launcher with a stub `claude`, and expands the `docker run` arguments of
-  `.claude/settings.json` with the environment that `claude` got.
+  `.mcp.json` with the environment that `claude` got. `run.test.ts` also
+  builds the release archive with `build-archive.sh` and runs the whole
+  update helper on it, with a stub `docker`.
 
 ## Invariants
 
@@ -215,7 +224,8 @@ new number needs an ADR.
   elapsed time and rethrows, and the SDK turns it into an error response.
   Process death hooks log `uncaughtException`, `unhandledRejection`, each
   signal, and the exit code; a `run.log` with no `exiting code=` line means
-  a SIGKILL. `run.sh` exits 2 with no `docker` and 3 with no daemon.
+  a SIGKILL. `run.sh` exits 2 with no `docker`, 3 with no daemon, and 4
+  when the install has no `.mcp.json` and its download fails.
 - **Time.** Local time everywhere: log stamps, digest file names, the
   dedup window. The container gets `TZ` and `/etc/localtime`.
 - **Version.** `.version`, `package.json` and `README.md` carry it; the

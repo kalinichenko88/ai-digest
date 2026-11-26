@@ -14,8 +14,9 @@ cp -r .claude/skills/ai-digest "${TARGET}/.claude/skills/"
 cp -r .claude/skills/add-source "${TARGET}/.claude/skills/"
 cp -r .claude/skills/validate-sources "${TARGET}/.claude/skills/"
 
-# Claude Code settings
+# Claude Code settings, and the MCP server, which Claude Code reads from .mcp.json
 cp .claude/settings.json "${TARGET}/.claude/"
+cp .mcp.json "${TARGET}/.mcp.json"
 
 # Config templates
 cp config/sources.yml "${TARGET}/config/"
