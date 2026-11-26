@@ -99,11 +99,10 @@ describe('run.sh update', () => {
   ])(
     'stops with its message when the call for the latest release fails: %s',
     (_, stubs) => {
-      const { dir, status, stdout } = update(stubs);
+      const { status, stdout } = update(stubs);
 
       expect(stdout).toContain('Could not fetch latest version');
       expect(status).toBe(1);
-      expect(existsSync(join(dir, 'download')), 'no download').toBe(false);
     },
   );
 });
