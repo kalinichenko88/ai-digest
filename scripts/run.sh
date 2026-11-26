@@ -236,9 +236,9 @@ CLAUDE_PID=$!
 tail -f "$LOG_FILE" &
 TAIL_PID=$!
 
-# Wait for Claude to finish, then stop tail
-wait $CLAUDE_PID
-EXIT_CODE=$?
+# Wait for Claude, then stop tail. With ||, set -e does not end a failed run here.
+EXIT_CODE=0
+wait $CLAUDE_PID || EXIT_CODE=$?
 kill $TAIL_PID 2>/dev/null
 
 END_TIME=$(date +%s)
