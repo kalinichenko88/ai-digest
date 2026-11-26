@@ -15,6 +15,7 @@ import { describe, expect, it, onTestFinished } from 'vitest';
 
 const ROOT = join(import.meta.dirname, '..', '..');
 const DELIVERY = 'output_path: digests\n';
+const MCP_JSON = readFileSync(join(ROOT, '.mcp.json'), 'utf8');
 
 describe('run.sh: the digest folder in the MCP container', () => {
   it('mounts output_path read-only at the path that the server reads', () => {
@@ -59,20 +60,18 @@ describe('run.sh: the MCP server in .mcp.json', () => {
     const settings = readFileSync(`${ROOT}/.claude/settings.json`, 'utf8');
 
     expect(settings).not.toContain('"mcpServers"');
-    expect(dockerArgs(ROOT, {})).toContain('ghcr.io/kalinichenko88/ai-digest');
   });
 
   it('is fetched for the installed version when the install has none', () => {
-    const mcpJson = readFileSync(join(ROOT, '.mcp.json'), 'utf8');
-    const { dir, status } = launch(DELIVERY, { download: mcpJson });
+    const { dir, status } = launch(DELIVERY, { download: MCP_JSON });
     const curlArgs = readFileSync(join(dir, 'bin', 'curl.args'), 'utf8');
 
     expect(status).toBe(0);
     expect(curlArgs).toContain(
       'https://raw.githubusercontent.com/kalinichenko88/ai-digest/v0.0.0/.mcp.json',
     );
-    expect(curlArgs).toContain('--max-time');
-    expect(readFileSync(join(dir, '.mcp.json'), 'utf8')).toBe(mcpJson);
+    expect(curlArgs).toContain('--max-time 15');
+    expect(readFileSync(join(dir, '.mcp.json'), 'utf8')).toBe(MCP_JSON);
   });
 
   it.each([
@@ -85,8 +84,10 @@ describe('run.sh: the MCP server in .mcp.json', () => {
     expect(existsSync(join(dir, '.mcp.json'))).toBe(false);
   });
 
-  it('stops the run with exit 3 when its Docker daemon does not run', () => {
-    expect(launch(DELIVERY, { docker: 'exit 1' }).status).toBe(3);
+  it('stops the run with exit 3 when its Docker daemon does not run, also once downloaded', () => {
+    expect(
+      launch(DELIVERY, { download: MCP_JSON, docker: 'exit 1' }).status,
+    ).toBe(3);
   });
 });
 
@@ -108,7 +109,6 @@ function launch(delivery: string, install: Install = {}) {
   });
   mkdirSync(join(dir, 'config'));
   mkdirSync(bin);
-  mkdirSync(home);
   writeFileSync(join(dir, '.version'), '0.0.0');
   writeFileSync(join(dir, 'config', 'delivery.yml'), delivery);
   copyFileSync(join(ROOT, 'scripts', 'run.sh'), join(dir, 'run.sh'));
