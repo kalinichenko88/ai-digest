@@ -23,10 +23,6 @@ export function launch(delivery: string, install: Install = {}) {
     env,
     timeout: 5_000,
   });
-  if (error) {
-    // The timeout ends bash only: stop the tail -f of its day log too.
-    spawnSync('pkill', ['-f', dir]);
-  }
   const args = () => {
     const output = readFileSync(join(dir, 'output'), 'utf8');
 
@@ -40,10 +36,6 @@ export function launch(delivery: string, install: Install = {}) {
 export function start(delivery: string, install: Install = {}) {
   const { dir, env } = prepare(delivery, install);
   const child = spawn('bash', [join(dir, 'run.sh')], { env, stdio: 'ignore' });
-  onTestFinished(() => {
-    // Stop what run.sh leaves running: its claude and its tail -f.
-    spawnSync('pkill', ['-f', dir]);
-  });
 
   return { dir, child };
 }
@@ -84,6 +76,9 @@ function prepare(delivery: string, install: Install) {
   const home = join(dir, 'home');
   const bin = join(dir, 'bin');
   onTestFinished(() => {
+    // A timeout of launch, or a signal test, ends bash only: stop what run.sh
+    // can leave running, its claude and its tail -f, then delete the folder.
+    spawnSync('pkill', ['-f', dir]);
     rmSync(dir, { recursive: true });
   });
   mkdirSync(join(dir, 'config'));

@@ -253,7 +253,8 @@ new number needs an ADR.
   signal, and the exit code; a `run.log` with no `exiting code=` line means
   a SIGKILL. `run.sh` exits 2 with no `docker`, 3 with no daemon, and 4
   when the install has no `.mcp.json` and its download fails. On SIGHUP,
-  SIGINT and SIGTERM it exits 129, 130 and 143. One `EXIT` trap of the
+  SIGINT and SIGTERM it logs `stopped by` the signal in `run.log` and exits
+  129, 130 and 143. One `EXIT` trap of the
   launcher, set after the update block, stops `claude` and `tail -f` while
   they run, and shows the notification `ai-digest failed` on each non-zero
   exit, an ERR exit too.

@@ -1,5 +1,7 @@
 import { spawnSync } from 'node:child_process';
 import { once } from 'node:events';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 
 import { describe, expect, it, vi } from 'vitest';
 
@@ -27,6 +29,9 @@ describe('run.sh: a signal while it waits for claude', () => {
       const [status]: unknown[] = await once(child, 'exit');
 
       expect(status).toBe(code);
+      expect(readFileSync(join(dir, 'logs', 'run.log'), 'utf8')).toContain(
+        `stopped by ${signal}`,
+      );
       await vi.waitFor(() => {
         expect(alive(dir), 'a claude or a tail -f stays').toEqual([]);
       });

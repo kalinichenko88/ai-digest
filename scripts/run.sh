@@ -88,7 +88,8 @@ on_exit() {
     osascript -e "display notification \"exit $code — see logs/run.log\" with title \"ai-digest failed\"" >/dev/null 2>&1 || true
   fi
 }
-trap on_exit EXIT; trap 'exit 129' HUP; trap 'exit 130' INT; trap 'exit 143' TERM
+stop() { runlog "stopped by SIG$1"; exit $((128 + $2)); }
+trap on_exit EXIT; trap 'stop HUP 1' HUP; trap 'stop INT 2' INT; trap 'stop TERM 15' TERM
 LOG_FILE="$LOG_DIR/$(date +%Y-%m-%d).md"
 
 cd "$PROJECT_DIR"
