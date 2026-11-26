@@ -75,13 +75,22 @@ function launch(delivery: string) {
 
 // Claude Code expands ${VAR} and ${VAR:-default} in the args of an MCP server.
 function dockerArgs(env: Record<string, string>): string[] {
-  const settings = JSON.parse(
+  const args: unknown = JSON.parse(
     readFileSync(join(ROOT, '.claude', 'settings.json'), 'utf8'),
-  );
+  ).mcpServers?.['ai-digest-mcp']?.args;
+  const isText = (arg: unknown): arg is string => {
+    return typeof arg === 'string';
+  };
+  if (!Array.isArray(args) || !args.every(isText)) {
+    throw new Error('.claude/settings.json has no args for ai-digest-mcp');
+  }
 
-  return settings.mcpServers['ai-digest-mcp'].args.map((arg: string) => {
-    return arg.replace(/\$\{(\w+)(?::-([^}]*))?\}/g, (_, name, fallback) => {
-      return env[name] || (fallback ?? '');
-    });
+  return args.map((arg) => {
+    return arg.replace(
+      /\$\{(\w+)(?::-([^}]*))?\}/g,
+      (_, name: string, fallback?: string) => {
+        return env[name] || (fallback ?? '');
+      },
+    );
   });
 }

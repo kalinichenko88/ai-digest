@@ -111,8 +111,10 @@ which uses `utils/`.
 - The container sees the digest folder at its host path. `scripts/run.sh`
   exports `output_path`, with `~` expanded, as `AI_DIGEST_OUTPUT` and
   creates the folder. `.claude/settings.json` mounts it read-only at the
-  same path and passes `HOME`, so the server expands `output_path` to the
-  same path as on the host. A run that `run.sh` did not start mounts
+  same path and passes `HOME`, so the server expands an `output_path` that
+  starts with `~/` or `/` to the same path as on the host. A relative
+  `output_path` resolves against `/app` in the container and misses the
+  mount. A run that `run.sh` did not start mounts
   `./config` at a path that the server does not read: `fetch_previous_urls`
   then returns a warning, not a silent empty list.
 - Each network call carries a timeout of 10 to 15 seconds: `AbortSignal.timeout`
@@ -182,8 +184,10 @@ new number needs an ADR.
 
 - **Config.** Two files, `config/sources.yml` and `config/delivery.yml`.
   `src/mcp-server.ts` resolves `config/` next to `dist/`; in Docker that is
-  `/app/config`, the mount of the install's `config/`. Only `src/config.ts`
-  parses them. `delivery.yml` gets a default for every key in
+  `/app/config`, the mount of the install's `config/`. In `src/`, only
+  `src/config.ts` parses them. `scripts/run.sh` reads `output_path` from
+  `delivery.yml` with `sed`, with the same default `~/digests`, for the
+  mount of the digest folder. `delivery.yml` gets a default for every key in
   `src/config.ts`, so `run.sh update` does not merge it. `sources.yml` has
   no defaults. `loadSourcesConfig` checks its shape at load: `rss` is a list
   of mappings and `github_releases.repos` is a list. A wrong shape throws one
