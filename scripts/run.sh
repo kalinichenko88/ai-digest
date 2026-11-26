@@ -29,6 +29,7 @@ trap 'runlog "run.sh died at line $LINENO: $BASH_COMMAND (exit $?)"' ERR
 runlog "start claude=$(command -v claude || echo MISSING) docker=$(command -v docker || echo MISSING) PATH=$PATH"
 
 # --- Update subcommand ---
+# Downloads the latest release and runs its apply-update.sh, which installs it.
 if [ "${1:-}" = "update" ]; then
   GREEN='\033[0;32m'
   YELLOW='\033[0;33m'
@@ -38,19 +39,11 @@ if [ "${1:-}" = "update" ]; then
   info()  { echo -e "${GREEN}✓${NC} $1"; }
   error() { echo -e "${RED}✗${NC} $1"; exit 1; }
 
-  # Read current version
-  if [ ! -f "${PROJECT_DIR}/.version" ]; then
-    error "No .version file found. Is this an ai-digest installation?"
-  fi
+  [ -f "${PROJECT_DIR}/.version" ] || error "No .version file found. Is this an ai-digest installation?"
   CURRENT="$(cat "${PROJECT_DIR}/.version")"
 
-  # Fetch latest version (unauthenticated, with optional token)
-  GITHUB_TOKEN_VAL=""
-  if [ -f "${PROJECT_DIR}/.env" ]; then
-    GITHUB_TOKEN_VAL=$(grep -E '^GITHUB_TOKEN=' "${PROJECT_DIR}/.env" 2>/dev/null | cut -d '=' -f2- || true)
-  fi
-
   # Fetch latest release: token from .env → gh auth → unauthenticated curl
+  GITHUB_TOKEN_VAL=$(grep -E '^GITHUB_TOKEN=' "${PROJECT_DIR}/.env" 2>/dev/null | cut -d '=' -f2- || true)
   if [ -n "${GITHUB_TOKEN_VAL}" ]; then
     RELEASE_JSON=$(curl -s -H "Authorization: token ${GITHUB_TOKEN_VAL}" "https://api.github.com/repos/${REPO}/releases/latest")
   elif command -v gh &>/dev/null && gh auth status &>/dev/null 2>&1; then
@@ -59,10 +52,7 @@ if [ "${1:-}" = "update" ]; then
     RELEASE_JSON=$(curl -s "https://api.github.com/repos/${REPO}/releases/latest")
   fi
   LATEST=$(echo "${RELEASE_JSON}" | grep -oE '"tag_name"\s*:\s*"[^"]+"' | head -1 | sed 's/.*"v\([^"]*\)".*/\1/')
-
-  if [ -z "${LATEST}" ]; then
-    error "Could not fetch latest version"
-  fi
+  [ -n "${LATEST}" ] || error "Could not fetch latest version"
 
   if [ "${CURRENT}" = "${LATEST}" ]; then
     info "Already up to date (v${CURRENT})"
@@ -70,112 +60,22 @@ if [ "${1:-}" = "update" ]; then
   fi
 
   echo -e "Update available: ${YELLOW}v${CURRENT}${NC} → ${GREEN}v${LATEST}${NC}"
+  ARCHIVE_URL=$(echo "${RELEASE_JSON}" | grep -oE '"browser_download_url"\s*:\s*"[^"]+"' | grep 'tar.gz' | head -1 | cut -d '"' -f 4)
+  [ -n "${ARCHIVE_URL}" ] || error "Could not find release archive URL"
 
   # Download new release to temp (use UPDATE_TMPDIR to avoid shadowing POSIX TMPDIR)
   UPDATE_TMPDIR="$(mktemp -d)"
-  ARCHIVE_URL=$(echo "${RELEASE_JSON}" | grep -oE '"browser_download_url"\s*:\s*"[^"]+"' | grep 'tar.gz' | head -1 | cut -d '"' -f 4)
-
-  if [ -z "${ARCHIVE_URL}" ]; then
-    rm -rf "${UPDATE_TMPDIR}"
-    error "Could not find release archive URL"
-  fi
-
+  trap 'rm -rf "${UPDATE_TMPDIR}"' EXIT
   echo "Downloading v${LATEST}..."
   curl -sL "${ARCHIVE_URL}" -o "${UPDATE_TMPDIR}/release.tar.gz"
   tar -xzf "${UPDATE_TMPDIR}/release.tar.gz" -C "${UPDATE_TMPDIR}"
-
   NEW_DIR="${UPDATE_TMPDIR}/ai-digest"
+  [ -f "${NEW_DIR}/apply-update.sh" ] || error "Unexpected archive layout: expected ai-digest/apply-update.sh"
 
-  if [ ! -d "${NEW_DIR}" ]; then
-    rm -rf "${UPDATE_TMPDIR}"
-    error "Unexpected archive layout: expected ai-digest/ directory"
-  fi
-
-  # Write helper script and exec into it (safe self-update)
-  cat > "${UPDATE_TMPDIR}/apply-update.sh" << 'HELPER'
-#!/usr/bin/env bash
-set -euo pipefail
-
-NEW_DIR="$1"
-TARGET_DIR="$2"
-LATEST="$3"
-REPO="$4"
-
-GREEN='\033[0;32m'
-YELLOW='\033[0;33m'
-NC='\033[0m'
-info()  { echo -e "${GREEN}✓${NC} $1"; }
-warn()  { echo -e "${YELLOW}!${NC} $1"; }
-
-# --- Merge configs with yq ---
-# Only the Go yq (mikefarah): the Python yq of pip prints strings in quotes, which breaks the queries
-if [[ "$(yq --version 2>/dev/null)" == *mikefarah* ]]; then
-  # sources.yml: append the new sources that the user config does not have
-  # rss holds mappings: match them by name
-  for name in $(yq ".rss[].name" "${NEW_DIR}/config/sources.yml" 2>/dev/null || true); do
-    EXISTS=$(yq ".rss[] | select(.name == \"$name\")" "${TARGET_DIR}/config/sources.yml" 2>/dev/null || true)
-    if [ -z "$EXISTS" ]; then
-      YQ_TMP=$(mktemp)
-      yq ".rss[] | select(.name == \"$name\")" "${NEW_DIR}/config/sources.yml" > "$YQ_TMP"
-      yq -i ".rss += [load(\"$YQ_TMP\")]" "${TARGET_DIR}/config/sources.yml"
-      rm -f "$YQ_TMP"
-      info "Added new source: $name"
-    fi
-  done
-  # github_releases.repos holds plain strings: match them by value
-  for repo in $(yq ".github_releases.repos[]" "${NEW_DIR}/config/sources.yml"); do
-    if [ -z "$(yq ".github_releases.repos[] | select(. == \"$repo\")" "${TARGET_DIR}/config/sources.yml")" ]; then
-      yq -i ".github_releases.repos += [\"$repo\"]" "${TARGET_DIR}/config/sources.yml"
-      info "Added new source: $repo"
-    fi
-  done
-
-  # delivery.yml needs no merge — loadDeliveryConfig defaults every key.
-else
-  warn "no yq of mikefarah/yq on PATH — skipping config merge, configs unchanged"
-fi
-
-# --- Replace non-config files ---
-cp -r "${NEW_DIR}/.claude/skills/"* "${TARGET_DIR}/.claude/skills/"
-info "Skills updated"
-
-cp "${NEW_DIR}/.claude/settings.json" "${TARGET_DIR}/.claude/settings.json"
-cp "${NEW_DIR}/.mcp.json" "${TARGET_DIR}/.mcp.json"
-info "settings.json and .mcp.json updated"
-
-cp "${NEW_DIR}/run.sh" "${TARGET_DIR}/run.sh"
-chmod +x "${TARGET_DIR}/run.sh"
-info "run.sh updated"
-
-cp "${NEW_DIR}/install.sh" "${TARGET_DIR}/install.sh"
-chmod +x "${TARGET_DIR}/install.sh"
-info "install.sh updated"
-
-cp "${NEW_DIR}/README.md" "${TARGET_DIR}/README.md"
-info "README.md updated"
-
-cp "${NEW_DIR}/.version" "${TARGET_DIR}/.version"
-info "Version updated to v${LATEST}"
-
-# --- Pull new Docker image ---
-if command -v docker &>/dev/null; then
-  echo "Pulling Docker image v${LATEST}..."
-  docker pull "ghcr.io/${REPO}:${LATEST}" || docker pull "ghcr.io/${REPO}:latest"
-  info "Docker image updated"
-else
-  warn "docker not found — skipping image pull"
-fi
-
-# Cleanup via trap (safe — avoids deleting script while running)
-SELF_TMPDIR="$(dirname "$0")"
-trap 'rm -rf "$SELF_TMPDIR"' EXIT
-
-echo ""
-echo -e "${GREEN}Updated to v${LATEST}!${NC}"
-HELPER
-
-  chmod +x "${UPDATE_TMPDIR}/apply-update.sh"
-  exec "${UPDATE_TMPDIR}/apply-update.sh" "${NEW_DIR}" "${PROJECT_DIR}" "${LATEST}" "${REPO}"
+  # The helper replaces this file (safe self-update): bash has read this whole
+  # if block already, so exit inside it, before bash reads on.
+  bash "${NEW_DIR}/apply-update.sh" "${NEW_DIR}" "${PROJECT_DIR}" "${LATEST}" "${REPO}"
+  exit
 fi
 
 # --- Default: run digest ---

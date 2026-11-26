@@ -29,6 +29,8 @@ cp config/delivery.yml "${TARGET}/config/"
 # Scripts and root files
 cp scripts/install.sh "${TARGET}/install.sh"
 cp scripts/run.sh "${TARGET}/run.sh"
+# run.sh update runs the apply-update.sh of the release it downloads
+cp scripts/apply-update.sh "${TARGET}/apply-update.sh"
 cp .env.example "${TARGET}/.env.example"
 cp .version "${TARGET}/.version"
 cp CHANGELOG.md "${TARGET}/CHANGELOG.md"

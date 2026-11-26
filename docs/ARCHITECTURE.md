@@ -34,11 +34,19 @@ Two things ship: the Docker image on GHCR (the server and the default
 config), and a tarball on GitHub Releases with the files that
 `scripts/build-archive.sh` copies, each by its own `cp` line: a new skill or
 file ships only with one, and the `release` skill does not ship. `run.sh
-update` replaces the files that its update helper in `scripts/run.sh` copies,
-and, with the Go `yq`, merges new sources into the person's `sources.yml`. It
-keeps every other file, as the person's `CLAUDE.md` and `delivery.yml`. The
-update helper of v0.1.8 and older does not copy `.mcp.json`; the new `run.sh`
-downloads it from the tag of `.version`.
+update` downloads the latest release and runs the update helper of that
+release, `scripts/apply-update.sh` (ADR 0002). The helper first pulls the
+image by the version tag of the release, not `:latest`, which CI moves
+before it publishes the release. So a failed pull changes nothing, and the
+next update runs again. Then, with the Go `yq`, the helper merges new
+sources into the person's `sources.yml`, and it replaces the files that it
+copies, itself too. Last, it tags the image `:latest`, the tag that `.mcp.json`
+runs, and writes `.version`. It keeps every other file,
+as the person's `CLAUDE.md` and `delivery.yml`. In v0.1.8 and older, the
+helper is a heredoc in the installed `run.sh`. The first update from such a
+version runs that old helper: it does not copy `.mcp.json`, so the new
+`run.sh` downloads it from the tag of `.version`, and it does not move
+`:latest`, so the README gives the commands that do it, once.
 
 ## Codemap
 
@@ -56,8 +64,9 @@ src/tools/                  one file per tool capability
   validate-sources.ts       sources.yml structure, URL reachability
 src/utils/                  pure string functions: normalize, similarity
 tests/                      vitest, one file per src file; fixtures/digests
-  scripts/run.test.ts       run.sh update: the sources.yml merge, with yq,
-                            and the files it installs from a real archive
+  scripts/apply-update.test.ts  the sources.yml merge of apply-update.sh,
+                            with yq
+  scripts/run.test.ts       run.sh update, whole, from a real archive
   scripts/run-launch.test.ts  the launcher: the mount of output_path, the
                             download of .mcp.json, exits 3 and 4
 .claude/skills/             the pipeline and the user commands, as prompts
@@ -70,8 +79,9 @@ CLAUDE.md                   the reader's context: stack, interests, topics
                             to ignore; the ai-digest skill reads it, and the
                             archive ships it as a template
 config/                     sources.yml, delivery.yml
-scripts/                    run.sh (launcher and updater), install.sh,
-                            build-archive.sh
+scripts/                    run.sh (launcher and updater), apply-update.sh
+                            (the update helper that each release ships),
+                            install.sh, build-archive.sh
 Dockerfile                  two stages: build, then dist + config
 .github/workflows/ci.yml    biome, tsc, build, vitest; on a tag: image and release
 ```
@@ -87,7 +97,7 @@ two areas. Folders are by kind (`tools/`, `utils/`).
 | Sources      | `src/tools/fetch-rss.ts`, `src/tools/fetch-github-releases.ts`, `src/tools/validate-sources.ts`, `config/sources.yml`, `.claude/skills/add-source/`, `.claude/skills/validate-sources/` | the exported functions of each tool file; `src/mcp-server.ts` is their only importer              |
 | Dedup        | `src/tools/fetch-previous-urls.ts`, `src/tools/check-duplicates.ts`, `src/utils/`, the `deduplication` block of `config/delivery.yml`                                                   | the same rule                                                                                     |
 | Server       | `src/mcp-server.ts`, `src/config.ts`, `src/logger.ts`, `src/types.ts`                                                                                                                   | the MCP tool names and their JSON shapes, which `src/types.ts` states                             |
-| Distribution | `Dockerfile`, `scripts/`, `.mcp.json`, `.claude/settings.json`, `.github/workflows/ci.yml`, `.claude/skills/release/`                                                                   | `install.sh`, `run.sh`, `run.sh update`                                                           |
+| Distribution | `Dockerfile`, `scripts/`, `.mcp.json`, `.claude/settings.json`, `.github/workflows/ci.yml`, `.claude/skills/release/`                                                                   | `install.sh`, `run.sh`, `run.sh update`, the four arguments of `apply-update.sh`                  |
 
 Dependencies point one way: `mcp-server.ts` → `tools/` → `utils/` and
 `types.ts`. `config.ts` and `logger.ts` are leaves that any file may import.
@@ -137,16 +147,18 @@ which uses `utils/`.
   tests write real files under `tests/fixtures/config/` and delete them.
   Two exceptions: `tests/fetch-previous-urls.test.ts` also checks the
   Step 7 digest template of the `ai-digest` skill, which shapes the files
-  that module reads back. `tests/scripts/` tests `scripts/run.sh`, one file
-  per job of the script. `run.test.ts` runs the `sources.yml` merge of the
-  update helper with the Go `yq`, and checks that the Python `yq`
-  (`pip install yq`) skips the merge. It runs in CI, which installs both.
-  Locally, each case runs only where its `yq` is: the Go one on `PATH`, the
-  Python one by its path in `PYTHON_YQ`. `run-launch.test.ts` runs the
-  launcher with a stub `claude`, and expands the `docker run` arguments of
-  `.mcp.json` with the environment that `claude` got. `run.test.ts` also
-  builds the release archive with `build-archive.sh` and runs the whole
-  update helper on it, with a stub `docker`.
+  that module reads back. `tests/scripts/` tests `scripts/run.sh` and
+  `scripts/apply-update.sh`, one file per job. `apply-update.test.ts` runs
+  the `sources.yml` merge of `scripts/apply-update.sh` with the Go `yq`, and
+  checks that the Python `yq` (`pip install yq`) skips the merge. It runs in
+  CI, which installs both. Locally, each case runs only where its `yq` is:
+  the Go one on `PATH`, the Python one by its path in `PYTHON_YQ`.
+  `run-launch.test.ts` runs the launcher with a stub `claude`, and expands
+  the `docker run` arguments of `.mcp.json` with the environment that
+  `claude` got. `run.test.ts` builds the release archive with
+  `build-archive.sh` and runs `run.sh update` on it, with stubs for `curl`,
+  `gh`, `docker` and `claude`. It checks the installed files, the image tag,
+  the deleted download, and that the launcher does not start.
 
 ## Invariants
 
@@ -171,7 +183,7 @@ which uses `utils/`.
   Check: grep `throw` in `src/tools/`.
 - **I-7.** No code file in `src/`, `tests/` or `scripts/` has more than
   160 lines.
-  Check: lines 160 in `src/` `tests/` `scripts/` debt `src/mcp-server.ts` `scripts/run.sh`.
+  Check: lines 160 in `src/` `tests/` `scripts/` debt `src/mcp-server.ts`.
 - **I-8.** No folder in `src/`, `tests/` or `scripts/` holds more than 8
   code files of its own.
   Check: files 8 in `src/` `tests/` `scripts/`.
@@ -189,8 +201,9 @@ percentile by nearest rank, over the 28 code files and 7 folders that
 - Code files per folder: rank 7 of 7 is 8. No folder was above it. `tests/`
   was at 8, the limit itself; `src/tools/` was at 5.
 
-`tests/` and `scripts/` are under the limits, with `scripts/run.sh` as
-known debt. A path leaves the `debt` list when it drops under the limit. A
+`tests/` and `scripts/` are under the limits. `scripts/run.sh` left the
+`debt` list when its update helper moved to `scripts/apply-update.sh`
+(ADR 0002). A path leaves the `debt` list when it drops under the limit. A
 new number needs an ADR.
 
 ## Cross-cutting concerns
@@ -242,3 +255,4 @@ An ADR goes to `docs/adr/NNNN-title.md` and into this index in the same
 commit.
 
 - [0001 Check the shape of sources.yml at load, by hand](adr/0001-check-sources-yml-shape-at-load.md)
+- [0002 Run the update helper of the new release](adr/0002-run-the-update-helper-of-the-new-release.md)
