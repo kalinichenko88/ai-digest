@@ -105,16 +105,39 @@ describe('run.sh: the end of the run', () => {
     );
   });
 
-  it('logs the end when its tail -f has stopped already', () => {
-    // The sleep lets bash reap the tail before wait returns.
+  it('logs the end, kills no PID of its tail -f, and notifies nothing, when the tail has stopped already', () => {
+    // claude ends once bash has reaped the tail (a zombie still answers
+    // kill -0): the PID of the tail can be another process's by then. The
+    // kill function records each kill.
     const { dir, status } = launch(DELIVERY, {
-      claude: 'sleep 0.2',
-      tail: 'exit 0',
+      claude: `pid="$(dirname "$0")/tail.pid"; until [ -s "$pid" ]; do sleep 0.05; done
+while kill -0 "$(cat "$pid")" 2>/dev/null; do sleep 0.05; done`,
+      tail: 'echo $$ > "$0.pid"',
+      bashEnv:
+        'kill() { echo "$@" >> "$(dirname "$0")/kill.args"; builtin kill "$@"; }',
     });
+    const tailPid = readFileSync(join(dir, 'bin', 'tail.pid'), 'utf8').trim();
 
     expect(status).toBe(0);
     expect(readFileSync(join(dir, 'logs', 'run.log'), 'utf8')).toContain(
       'finished exit=0',
+    );
+    expect(readFileSync(join(dir, 'kill.args'), 'utf8')).not.toMatch(
+      new RegExp(`\\b${tailPid}\\b`),
+    );
+    expect(existsSync(join(dir, 'bin', 'osascript.args'))).toBe(false);
+  });
+
+  it.each([
+    [2, 'no docker on PATH', { docker: null }],
+    [3, 'no Docker daemon', { docker: 'exit 1' }],
+    [4, 'no .mcp.json to download', { download: null }],
+  ])('notifies exit %i, with %s', (code, _, install) => {
+    const { dir, status } = launch(DELIVERY, install);
+
+    expect(status).toBe(code);
+    expect(readFileSync(join(dir, 'bin', 'osascript.args'), 'utf8')).toContain(
+      `exit ${code} — see logs/run.log`,
     );
   });
 });

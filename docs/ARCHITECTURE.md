@@ -74,7 +74,9 @@ tests/                      vitest, one file per src file; fixtures/digests
   scripts/update-during-run.test.ts  the update helper while a digest run
                             waits: the run ends on its own run.sh
   scripts/run-launch.test.ts  the launcher: the mount of output_path, the
-                            download of .mcp.json, exits 3 and 4
+                            download of .mcp.json, exits 2, 3 and 4 and
+                            their notification, the end of the run
+  scripts/run-signal.test.ts  the launcher on SIGTERM, SIGINT and SIGHUP
   scripts/install.test.ts   install.sh: the image of .version, with the
                             archive unpacked or downloaded
 .claude/skills/             the pipeline and the user commands, as prompts
@@ -162,7 +164,8 @@ which uses `utils/`.
   `yq` (`pip install yq`) skips the merge. It runs in CI, which installs
   both. Locally, each case runs only where its `yq` is: the Go one on
   `PATH`, the Python one by its path in `PYTHON_YQ`.
-  `run-launch.test.ts` runs the launcher with a stub `claude`, and expands
+  `run-launch.test.ts` runs the launcher with a stub `claude`, and
+  `run-signal.test.ts` signals it while that stub runs. The first expands
   the `docker run` arguments of `.mcp.json` with the environment that
   `claude` got. `run.test.ts` builds the release archive with
   `build-archive.sh` and runs `run.sh update` on it, with stubs for `curl`,
@@ -259,7 +262,12 @@ new number needs an ADR.
   Process death hooks log `uncaughtException`, `unhandledRejection`, each
   signal, and the exit code; a `run.log` with no `exiting code=` line means
   a SIGKILL. `run.sh` exits 2 with no `docker`, 3 with no daemon, and 4
-  when the install has no `.mcp.json` and its download fails.
+  when the install has no `.mcp.json` and its download fails. After the
+  update block, the launcher sets one `EXIT` trap. From then on, on SIGHUP,
+  SIGINT and SIGTERM, it logs `stopped by` the signal in `run.log` and exits
+  129, 130 and 143. On each exit, the trap stops `claude` and `tail -f`
+  while they run, and shows the notification `ai-digest failed` on a
+  non-zero exit, an ERR exit too.
 - **Time.** Local time everywhere: log stamps, digest file names, the
   dedup window. The container gets `TZ` and `/etc/localtime`.
 - **Version.** `.version`, `package.json` and `README.md` carry it; the

@@ -165,7 +165,11 @@ tail -f logs/run.log
 
 When a run dies, `logs/run.log` is the file to read. Exit codes: `2` docker
 missing, `3` Docker daemon down, `4` no `.mcp.json` and its download failed,
-`137` killed (usually OOM), `143` terminated.
+`137` killed (usually OOM), `143` terminated. `run.sh` exits `129`, `130` or
+`143` on SIGHUP, SIGINT or SIGTERM: it logs `stopped by` the signal in
+`logs/run.log` and stops Claude before it exits. A digest run that exits
+non-zero shows the macOS notification `ai-digest failed`; `run.sh update` shows
+none.
 A run with no `exiting code=` line was killed outright rather than crashing.
 
 ## Development
