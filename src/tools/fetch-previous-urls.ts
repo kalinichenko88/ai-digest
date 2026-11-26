@@ -22,15 +22,8 @@ export function getDigestFiles(
   cutoff.setDate(cutoff.getDate() - windowDays);
   const cutoffStr = cutoff.toLocaleDateString('sv-SE');
 
-  let filenames: string[];
-  try {
-    filenames = readdirSync(dir);
-  } catch {
-    return [];
-  }
-
   const files: DigestFile[] = [];
-  for (const name of filenames) {
+  for (const name of readdirSync(dir)) {
     const match = DATE_PATTERN.exec(name);
     if (!match) continue;
     const date = match[1];
@@ -75,7 +68,22 @@ export function fetchPreviousUrls(
     `Scanning ${outputPath} for digests (window: ${windowDays} days)`,
   );
 
-  const files = getDigestFiles(outputPath, windowDays);
+  let files: DigestFile[];
+  try {
+    files = getDigestFiles(outputPath, windowDays);
+  } catch (err) {
+    // In Docker, the folder is there only when run.sh started the run.
+    const warning = `Previous digests not read: ${err instanceof Error ? err.message : err}`;
+    log('dedup', warning);
+
+    return {
+      window_days: windowDays,
+      digests_found: 0,
+      dates: [],
+      entries: [],
+      warnings: [warning],
+    };
+  }
 
   if (files.length === 0) {
     log('dedup', 'No previous digests found');

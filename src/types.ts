@@ -70,6 +70,7 @@ export interface PreviousDigestResult {
   digests_found: number;
   dates: string[];
   entries: DigestEntry[];
+  warnings?: string[];
 }
 
 export type DuplicateStatus = 'exact_duplicate' | 'likely_duplicate' | 'unique';

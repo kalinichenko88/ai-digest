@@ -47,7 +47,7 @@ It reads the last `deduplication.window_days` days (`config/delivery.yml`, defau
 
 Save the returned entries — you will use them for semantic deduplication in Step 4.
 
-Log: `Step 2: Previous digests loaded — X entries from Y days` or `Step 2: No previous digests found, skipping dedup`
+Log: `Step 2: Previous digests loaded — X entries from Y days` or `Step 2: No previous digests found, skipping dedup`. Log each warning of the result on its own line.
 
 ## Step 3: Collect Data
 

@@ -182,6 +182,14 @@ LOG_FILE="$LOG_DIR/$(date +%Y-%m-%d).md"
 
 cd "$PROJECT_DIR"
 
+# .claude/settings.json mounts this folder into the MCP container at the same path,
+# so the server reads the previous digests. Docker refuses a missing source.
+OUTPUT_PATH=$(sed -nE "s/^output_path:[[:space:]]*['\"]?([^'\"#]*[^'\"#[:space:]]).*/\1/p" config/delivery.yml)
+OUTPUT_PATH="${OUTPUT_PATH:-~/digests}"
+export AI_DIGEST_OUTPUT="${OUTPUT_PATH/#\~/$HOME}"
+mkdir -p "$AI_DIGEST_OUTPUT"
+AI_DIGEST_OUTPUT="$(cd "$AI_DIGEST_OUTPUT" && pwd)"
+
 # The MCP server runs in a container: no daemon means no tools and no server-side
 # log either. Distinct exit codes so the launcher shows a diagnosis, not "exit 1".
 if grep -q '"docker"' "$PROJECT_DIR/.claude/settings.json" 2>/dev/null; then
