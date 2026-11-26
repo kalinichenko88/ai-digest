@@ -13,6 +13,5 @@
     // allowlist: any future ambient @types/* package must be added here too.
     "types": ["node"]
   },
-  "include": ["src"],
-  "exclude": ["node_modules", "dist", "tests"]
+  "include": ["src"]
 }
