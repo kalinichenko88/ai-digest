@@ -31,6 +31,10 @@ jobs:
       - name: Typecheck
         run: npx tsc --noEmit
 
+      # The Docker build runs only on a tag. This step checks tsconfig.build.json on every push.
+      - name: Build
+        run: npm run build && test -f dist/mcp-server.js
+
       # The runner's yq is the Go one; the run.sh test also needs the Python yq, off PATH
       - name: Install the Python yq
         run: |

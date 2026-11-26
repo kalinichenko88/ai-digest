@@ -1,18 +1,16 @@
 {
+  // The typecheck and the editor: src and tests. tsconfig.build.json emits src.
   "compilerOptions": {
     "target": "ES2022",
     "module": "Node16",
     "moduleResolution": "Node16",
-    "outDir": "dist",
-    "rootDir": "src",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "declaration": true,
+    "noEmit": true,
     // Required since TS 7 (@types/node is no longer auto-included). This is an
     // allowlist: any future ambient @types/* package must be added here too.
     "types": ["node"]
   },
-  "include": ["src"],
-  "exclude": ["node_modules", "dist", "tests"]
+  "include": ["src", "tests"]
 }

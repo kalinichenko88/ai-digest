@@ -62,7 +62,7 @@ config/                     sources.yml, delivery.yml
 scripts/                    run.sh (launcher and updater), install.sh,
                             build-archive.sh
 Dockerfile                  two stages: build, then dist + config
-.github/workflows/ci.yml    biome, tsc, vitest; on a tag: image and release
+.github/workflows/ci.yml    biome, tsc, build, vitest; on a tag: image and release
 ```
 
 ## Modules

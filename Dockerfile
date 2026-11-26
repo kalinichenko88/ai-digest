@@ -3,7 +3,7 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 COPY src/ src/
-COPY tsconfig.json ./
+COPY tsconfig.json tsconfig.build.json ./
 RUN npm run build
 
 FROM node:26.13.1-alpine
