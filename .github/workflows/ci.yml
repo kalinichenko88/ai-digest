@@ -35,7 +35,7 @@ jobs:
       - name: Build
         run: npm run build && test -f dist/mcp-server.js
 
-      # The runner's yq is the Go one; the run.sh test also needs the Python yq, off PATH
+      # The runner's yq is the Go one; the apply-update.sh test also needs the Python yq, off PATH
       - name: Install the Python yq
         run: |
           python3 -m venv "$RUNNER_TEMP/python-yq"

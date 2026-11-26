@@ -1,6 +1,7 @@
 import { execFileSync, spawnSync } from 'node:child_process';
 import {
   cpSync,
+  existsSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -12,144 +13,145 @@ import { dirname, join } from 'node:path';
 
 import { describe, expect, it, onTestFinished } from 'vitest';
 
-import { loadSourcesConfig } from '../../src/config.js';
-
 const ROOT = join(import.meta.dirname, '..', '..');
-const DEFAULT_SOURCES_PATH = join(ROOT, 'config', 'sources.yml');
-const DEFAULT_SOURCES = readFileSync(DEFAULT_SOURCES_PATH, 'utf8');
-const RELEASED_SOURCES = DEFAULT_SOURCES.replace(
-  '\n\ngithub_releases:',
-  '\n  - name: new-feed\n    url: https://example.com/rss.xml\n    limit: 5\n\ngithub_releases:',
-).replace(
-  '    - tailwindlabs/tailwindcss\n',
-  '    - tailwindlabs/tailwindcss\n    - biomejs/biome\n',
-);
+// The image that .mcp.json runs: with no tag, that is :latest.
+const IMAGE = 'ghcr.io/kalinichenko88/ai-digest';
+// Each file that the update replaces in the install, and its source in the repo.
+const SHIPPED: Record<string, string> = {
+  '.claude/settings.json': '.claude/settings.json',
+  '.claude/skills/add-source/SKILL.md': '.claude/skills/add-source/SKILL.md',
+  '.claude/skills/ai-digest/SKILL.md': '.claude/skills/ai-digest/SKILL.md',
+  '.claude/skills/validate-sources/SKILL.md':
+    '.claude/skills/validate-sources/SKILL.md',
+  '.env.example': '.env.example',
+  '.mcp.json': '.mcp.json',
+  '.version': '.version',
+  'CHANGELOG.md': 'CHANGELOG.md',
+  'README.md': 'README.md',
+  'apply-update.sh': 'scripts/apply-update.sh',
+  'install.sh': 'scripts/install.sh',
+  'run.sh': 'scripts/run.sh',
+};
 
-// CI has both yq programs. Locally, each test runs only where its yq is installed.
-const hasGoYq =
-  spawnSync('yq', ['--version'], { encoding: 'utf8' }).stdout?.includes(
-    'mikefarah',
-  ) === true;
-// The Python yq (pip install yq) has the same name, so CI keeps it off PATH and names it here.
-const pythonYq = process.env.PYTHON_YQ ?? '';
+describe('run.sh update', () => {
+  it('replaces each file of the install that the release ships, then deletes the download', () => {
+    const { dir, install, status } = update();
+    const download = readFileSync(join(dir, 'download'), 'utf8').trim();
 
-describe('run.sh update: merge of sources.yml', () => {
-  it.skipIf(!hasGoYq && !process.env.CI)(
-    'appends each rss feed and github repo of the release that the install does not have',
-    () => {
-      const installed = loadSourcesConfig(DEFAULT_SOURCES_PATH);
-
-      const { output, merged } = runMerge(RELEASED_SOURCES, DEFAULT_SOURCES);
-
-      expect(merged.github_releases.repos).toEqual([
-        ...installed.github_releases.repos,
-        'biomejs/biome',
-      ]);
-      expect(merged.rss).toEqual([
-        ...installed.rss,
-        { name: 'new-feed', url: 'https://example.com/rss.xml', limit: 5 },
-      ]);
-      expect(output.match(/Added new source: \S+/g)).toEqual([
-        'Added new source: new-feed',
-        'Added new source: biomejs/biome',
-      ]);
-    },
-  );
-
-  it.skipIf(!pythonYq && !process.env.CI)(
-    'skips the merge with a warning when the yq on PATH is the Python yq',
-    () => {
-      expect(pythonYq, 'PYTHON_YQ names the Python yq').not.toBe('');
-
-      const { output, merged } = runMerge(
-        RELEASED_SOURCES,
-        DEFAULT_SOURCES,
-        pythonYq,
+    expect(status).toBe(0);
+    for (const [file, source] of Object.entries(SHIPPED)) {
+      expect(readFileSync(join(install, file), 'utf8'), file).toBe(
+        readFileSync(join(ROOT, source), 'utf8'),
       );
-
-      expect(output).toContain('skipping config merge');
-      expect(merged).toEqual(loadSourcesConfig(DEFAULT_SOURCES_PATH));
-    },
-  );
-});
-
-describe('run.sh update: the files of the release', () => {
-  it('installs the .mcp.json of the release archive, which the install did not have', () => {
-    const dir = mkdtempSync(join(tmpdir(), 'ai-digest-'));
-    const install = join(dir, 'install');
-    const helper = join(dir, 'helper', 'apply-update.sh');
-    onTestFinished(() => {
-      rmSync(dir, { recursive: true });
-    });
-    // The archive of a release, built as CI builds it, here into dir.
-    const archive = execFileSync(
-      'bash',
-      [join(ROOT, 'scripts', 'build-archive.sh'), '0.0.0-test'],
-      { cwd: dir, encoding: 'utf8' },
-    ).trim();
-    mkdirSync(join(install, '.claude', 'skills'), { recursive: true });
-    cpSync(join(ROOT, 'config'), join(install, 'config'), { recursive: true });
-    mkdirSync(join(dir, 'bin'));
-    mkdirSync(join(dir, 'helper'));
-    writeFileSync(join(dir, 'bin', 'docker'), '#!/bin/sh\n', { mode: 0o755 });
-    writeFileSync(helper, updateHelper());
-    execFileSync('tar', ['-xzf', join(dir, archive), '-C', dir]);
-
-    execFileSync(
-      'bash',
-      [helper, join(dir, 'ai-digest'), install, '0.0.0', 'owner/repo'],
-      { env: { ...process.env, PATH: `${dir}/bin:${process.env.PATH}` } },
+    }
+    expect(existsSync(dirname(download)), download).toBe(false);
+    expect(existsSync(join(dir, 'bin', 'claude.ran')), 'Claude ran').toBe(
+      false,
     );
+  });
 
-    expect(readFileSync(join(install, '.mcp.json'), 'utf8')).toBe(
-      readFileSync(join(ROOT, '.mcp.json'), 'utf8'),
+  it('pulls the image of the version it installs, and tags it latest, the tag that .mcp.json runs', () => {
+    const { dir, status } = update();
+
+    expect(status).toBe(0);
+    expect(readFileSync(join(ROOT, '.mcp.json'), 'utf8')).toContain(
+      `"${IMAGE}"`,
+    );
+    // Not a pull of :latest, which CI moves before it publishes the release.
+    expect(readFileSync(join(dir, 'bin', 'docker.args'), 'utf8')).toBe(
+      `pull ${IMAGE}:0.0.0-test\ntag ${IMAGE}:0.0.0-test ${IMAGE}:latest\n`,
+    );
+  });
+
+  it('changes nothing when the image pull fails, so the next update runs again', () => {
+    const { dir, install, status, stdout } = update({
+      docker: 'echo "$@" >> "$0.args"; exit 1',
+    });
+    const download = readFileSync(join(dir, 'download'), 'utf8').trim();
+
+    expect(status).toBe(1);
+    expect(stdout).toContain('run ./run.sh update again');
+    expect(readFileSync(join(dir, 'bin', 'docker.args'), 'utf8')).toBe(
+      `pull ${IMAGE}:0.0.0-test\n`,
+    );
+    for (const file of Object.keys(SHIPPED)) {
+      if (file === 'run.sh' || file === '.version') {
+        continue;
+      }
+      expect(existsSync(join(install, file)), file).toBe(false);
+    }
+    expect(readFileSync(join(install, 'run.sh'), 'utf8')).toMatch(
+      /# v0\.0\.0\n$/,
+    );
+    expect(readFileSync(join(install, '.version'), 'utf8')).toBe('0.0.0');
+    expect(existsSync(dirname(download)), download).toBe(false);
+  });
+
+  it('sends the GITHUB_TOKEN of .env to the GitHub API', () => {
+    const { dir, status } = update({ env: 'GITHUB_TOKEN=ghp_test\n' });
+
+    expect(status).toBe(0);
+    expect(readFileSync(join(dir, 'bin', 'curl.args'), 'utf8')).toContain(
+      '-H Authorization: token ghp_test https://api.github.com/',
     );
   });
 });
 
-// yq: the path of a yq program, whose folder goes first on PATH.
-function runMerge(released: string, installed: string, yq?: string) {
+// Runs run.sh update in an install of v0.0.0, with stubs that serve the
+// archive of v0.0.0-test, built as CI builds it. docker: the body of its stub;
+// env: the .env of the install.
+function update({
+  docker = 'echo "$@" >> "$0.args"',
+  env = '',
+}: {
+  docker?: string;
+  env?: string;
+} = {}) {
   const dir = mkdtempSync(join(tmpdir(), 'ai-digest-'));
-  const path = yq ? `${dirname(yq)}:${process.env.PATH}` : process.env.PATH;
-  mkdirSync(join(dir, 'new', 'config'), { recursive: true });
-  mkdirSync(join(dir, 'install', 'config'), { recursive: true });
-  writeFileSync(join(dir, 'new', 'config', 'sources.yml'), released);
-  writeFileSync(join(dir, 'install', 'config', 'sources.yml'), installed);
-  try {
-    const output = execFileSync(
-      'bash',
-      [
-        '-c',
-        mergeScript(),
-        'apply-update.sh',
-        join(dir, 'new'),
-        join(dir, 'install'),
-        '0.0.0',
-        'owner/repo',
-      ],
-      { encoding: 'utf8', env: { ...process.env, PATH: path } },
-    );
-
-    return {
-      output,
-      merged: loadSourcesConfig(join(dir, 'install', 'config', 'sources.yml')),
-    };
-  } finally {
+  const install = join(dir, 'install');
+  const bin = join(dir, 'bin');
+  onTestFinished(() => {
     rmSync(dir, { recursive: true });
+  });
+  const archive = execFileSync(
+    'bash',
+    [join(ROOT, 'scripts', 'build-archive.sh'), '0.0.0-test'],
+    { cwd: dir, encoding: 'utf8' },
+  ).trim();
+  mkdirSync(join(install, '.claude', 'skills'), { recursive: true });
+  cpSync(join(ROOT, 'config'), join(install, 'config'), { recursive: true });
+  // An older run.sh, so that the test sees the update replace it
+  writeFileSync(
+    join(install, 'run.sh'),
+    `${readFileSync(join(ROOT, 'scripts', 'run.sh'), 'utf8')}# v0.0.0\n`,
+  );
+  writeFileSync(join(install, '.version'), '0.0.0');
+  if (env) {
+    writeFileSync(join(install, '.env'), env);
   }
-}
+  mkdirSync(bin);
+  const stubs = {
+    // The API answer for the latest release; with -o, the archive, and its path in dir/download.
+    curl: `echo "$@" >> "$0.args"
+for arg; do [ "$prev" = -o ] && cp '${join(dir, archive)}' "$arg" && echo "$arg" > '${dir}/download' && exit; prev=$arg; done
+echo '{"tag_name": "v0.0.0-test", "browser_download_url": "https://x/${archive}"}'`,
+    gh: 'exit 1',
+    docker,
+    // run.sh exits in its update block: the launcher after it must not start Claude.
+    claude: 'touch "$0.ran"',
+  };
+  for (const [name, body] of Object.entries(stubs)) {
+    writeFileSync(join(bin, name), `#!/bin/sh\n${body}\n`, { mode: 0o755 });
+  }
 
-// The start of the update helper, up to the copy of the files, is the config merge.
-function mergeScript(): string {
-  return updateHelper().split('# --- Replace non-config files ---')[0];
-}
+  const { status, stdout } = spawnSync(
+    'bash',
+    [join(install, 'run.sh'), 'update'],
+    {
+      encoding: 'utf8',
+      env: { ...process.env, HOME: dir, PATH: `${bin}:${process.env.PATH}` },
+    },
+  );
 
-// The update helper is a heredoc in run.sh. run.sh update writes it to a
-// folder of its own, which it deletes at exit, and runs it.
-function updateHelper(): string {
-  const helper = readFileSync(join(ROOT, 'scripts', 'run.sh'), 'utf8').split(
-    "<< 'HELPER'\n",
-  )[1];
-
-  return helper.split('\nHELPER\n')[0];
+  return { dir, install, status, stdout };
 }
