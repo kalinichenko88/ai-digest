@@ -12,6 +12,7 @@ import { dirname, join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import { loadSourcesConfig } from '../../src/config.js';
+import { writeStubs } from './launch.js';
 
 const ROOT = join(import.meta.dirname, '..', '..');
 const DEFAULT_SOURCES_PATH = join(ROOT, 'config', 'sources.yml');
@@ -79,7 +80,7 @@ function runMerge(released: string, installed: string, yq?: string) {
   const bin = join(dir, 'bin');
   const path = `${bin}:${yq ? `${dirname(yq)}:` : ''}${process.env.PATH}`;
   mkdirSync(bin);
-  writeFileSync(join(bin, 'docker'), '#!/bin/sh\n', { mode: 0o755 });
+  writeStubs(bin, { docker: 'exit 0' });
   mkdirSync(join(dir, 'new', 'config'), { recursive: true });
   mkdirSync(join(dir, 'install', 'config'), { recursive: true });
   writeFileSync(join(dir, 'new', 'config', 'sources.yml'), released);

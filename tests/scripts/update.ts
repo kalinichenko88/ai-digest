@@ -12,6 +12,8 @@ import { join } from 'node:path';
 
 import { onTestFinished } from 'vitest';
 
+import { writeStubs } from './launch.js';
+
 // Runs run.sh update in an install of v0.0.0, with stubs that serve the
 // archive of v0.0.0-test, built as CI builds it.
 export function update({
@@ -55,9 +57,7 @@ echo '{"tag_name": "v0.0.0-test", "browser_download_url": "https://x/${archive}"
     // run.sh exits in its update block: the launcher after it must not start Claude.
     claude: 'touch "$0.ran"',
   };
-  for (const [name, body] of Object.entries(stubs)) {
-    writeFileSync(join(bin, name), `#!/bin/sh\n${body}\n`, { mode: 0o755 });
-  }
+  writeStubs(bin, stubs);
 
   const { status, stdout } = spawnSync(
     'bash',

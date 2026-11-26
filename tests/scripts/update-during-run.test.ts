@@ -15,6 +15,8 @@ import { join } from 'node:path';
 
 import { describe, expect, it, onTestFinished } from 'vitest';
 
+import { writeStubs } from './launch.js';
+
 const ROOT = join(import.meta.dirname, '..', '..');
 
 describe('apply-update.sh: the run.sh of a digest run that waits for claude', () => {
@@ -56,9 +58,7 @@ describe('apply-update.sh: the run.sh of a digest run that waits for claude', ()
       yq: 'exit 1',
       osascript: 'exit 0',
     };
-    for (const [name, body] of Object.entries(stubs)) {
-      writeFileSync(join(bin, name), `#!/bin/sh\n${body}\n`, { mode: 0o755 });
-    }
+    writeStubs(bin, stubs);
     const env = {
       ...process.env,
       HOME: dir,

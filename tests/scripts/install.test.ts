@@ -12,6 +12,8 @@ import { join } from 'node:path';
 
 import { describe, expect, it, onTestFinished } from 'vitest';
 
+import { writeStubs } from './launch.js';
+
 const ROOT = join(import.meta.dirname, '..', '..');
 const IMAGE = 'ghcr.io/kalinichenko88/ai-digest';
 
@@ -97,9 +99,7 @@ function install(
     'ai-digest',
   ]);
   const stubs = { docker: 'echo "$@" >> "$0.calls"', curl };
-  for (const [name, body] of Object.entries(stubs)) {
-    writeFileSync(join(bin, name), `#!/bin/sh\n${body}\n`, { mode: 0o755 });
-  }
+  writeStubs(bin, stubs);
   // The questions read /dev/tty, which a test has not: one empty line answers each.
   writeFileSync(join(dir, 'answers'), '\n');
   const script = readFileSync(join(ROOT, 'scripts', 'install.sh'), 'utf8');

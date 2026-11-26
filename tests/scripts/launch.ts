@@ -61,6 +61,13 @@ export function dockerArgs(dir: string, env: Record<string, string>): string[] {
   });
 }
 
+// Writes each stub as an executable shell script in bin.
+export function writeStubs(bin: string, stubs: Record<string, string>) {
+  for (const [name, body] of Object.entries(stubs)) {
+    writeFileSync(join(bin, name), `#!/bin/sh\n${body}\n`, { mode: 0o755 });
+  }
+}
+
 const ROOT = join(import.meta.dirname, '..', '..');
 
 // A curl that saves curl.body as its -o file, or fails as on HTTP 404.
@@ -97,9 +104,7 @@ function prepare(delivery: string, install: Install) {
     ...(install.docker === null ? {} : { docker: install.docker ?? 'exit 0' }),
     ...(install.tail === undefined ? {} : { tail: install.tail }),
   };
-  for (const [name, body] of Object.entries(stubs)) {
-    writeFileSync(join(bin, name), `#!/bin/sh\n${body}\n`, { mode: 0o755 });
-  }
+  writeStubs(bin, stubs);
   if (typeof install.download === 'string') {
     writeFileSync(join(bin, 'curl.body'), install.download);
   }
