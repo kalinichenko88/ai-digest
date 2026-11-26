@@ -70,6 +70,9 @@ export function writeStubs(bin: string, stubs: Record<string, string>) {
   }
 }
 
+// A curl with no network: exit 6, and with -S its own error, as the real one.
+export const OFFLINE_CURL = `for arg; do case $arg in -[!-]*S*) echo 'curl: (6) Could not resolve host: api.github.com' >&2 ;; esac; done; exit 6`;
+
 const ROOT = join(import.meta.dirname, '..', '..');
 
 // A curl that saves curl.body as its -o file, or fails as on HTTP 404.

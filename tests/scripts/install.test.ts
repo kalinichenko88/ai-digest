@@ -12,7 +12,7 @@ import { join } from 'node:path';
 
 import { describe, expect, it, onTestFinished } from 'vitest';
 
-import { writeStubs } from './launch.js';
+import { OFFLINE_CURL, writeStubs } from './launch.js';
 
 const ROOT = join(import.meta.dirname, '..', '..');
 const IMAGE = 'ghcr.io/kalinichenko88/ai-digest';
@@ -59,9 +59,6 @@ describe('install.sh: the download of the latest release', () => {
     expect(docker).toEqual([]);
   });
 });
-
-// A curl with no network: exit 6, and with -S its own error, as the real one.
-const OFFLINE_CURL = `for arg; do case $arg in -[!-]*S*) echo 'curl: (6) Could not resolve host: api.github.com' >&2 ;; esac; done; exit 6`;
 
 // A curl that serves a release of the GitHub API, then its archive.
 const CURL = `case "$*" in
