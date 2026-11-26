@@ -79,6 +79,16 @@ if [ "${1:-}" = "update" ]; then
 fi
 
 # --- Default: run digest ---
+# On each exit: stop claude and tail -f while they run, and notify a failure.
+# jobs -r lists no job that bash has reaped: its PID can be another process's.
+on_exit() {
+  local code=$?
+  kill $(jobs -pr) 2>/dev/null || true
+  if [ "$code" -ne 0 ] && command -v osascript >/dev/null; then # 137 = SIGKILL (OOM), 143 = SIGTERM
+    osascript -e "display notification \"exit $code — see logs/run.log\" with title \"ai-digest failed\"" >/dev/null 2>&1 || true
+  fi
+}
+trap on_exit EXIT; trap 'exit 129' HUP; trap 'exit 130' INT; trap 'exit 143' TERM
 LOG_FILE="$LOG_DIR/$(date +%Y-%m-%d).md"
 
 cd "$PROJECT_DIR"
@@ -129,28 +139,20 @@ claude -p "Run ai-digest skill" \
   --max-turns 50 \
   --allowedTools "Read" "Write" "Bash" "Agent" "mcp__ai-digest-mcp" \
   >> "$LOG_FILE" 2>&1 &
-
 CLAUDE_PID=$!
 
 # Stream log in real-time
 tail -f "$LOG_FILE" &
-TAIL_PID=$!
 
 # Wait for Claude, then stop tail. With ||, a failure of either does not end the run.
 EXIT_CODE=0
 wait $CLAUDE_PID || EXIT_CODE=$?
-kill $TAIL_PID 2>/dev/null || true
+kill $(jobs -pr) 2>/dev/null || true
 
-END_TIME=$(date +%s)
-ELAPSED=$(( END_TIME - START_TIME ))
+ELAPSED=$(( $(date +%s) - START_TIME ))
 
 echo "[$(date '+%Y-%m-%d %H:%M')] Finished with exit code $EXIT_CODE (${ELAPSED}s elapsed)" >> "$LOG_FILE"
 runlog "finished exit=$EXIT_CODE elapsed=${ELAPSED}s"
-
-# 137 = SIGKILL (OOM), 143 = SIGTERM
-if [ "$EXIT_CODE" -ne 0 ] && command -v osascript >/dev/null; then
-  osascript -e "display notification \"exit $EXIT_CODE — see logs/run.log\" with title \"ai-digest failed\"" >/dev/null 2>&1 || true
-fi
 
 echo "Done (${ELAPSED}s, exit code $EXIT_CODE)"
 exit $EXIT_CODE
