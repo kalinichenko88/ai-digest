@@ -45,5 +45,6 @@ picks an RSS name that the file does not have yet (step 4).
      digest run. Say how many errors there are, in one line, and that
      `/validate-sources` shows them.
 
-7. Confirm: "Added <name/repo> to <section>." When `structure.valid` is true,
-   add: "It will be included in the next digest run."
+7. Confirm: "Added <name/repo> to <section>." When `structure.valid` is true
+   and its `reachability` item is `ok`, add: "It will be included in the next
+   digest run."
