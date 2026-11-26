@@ -42,16 +42,18 @@ if [ "${1:-}" = "update" ]; then
   [ -f "${PROJECT_DIR}/.version" ] || error "No .version file found. Is this an ai-digest installation?"
   CURRENT="$(cat "${PROJECT_DIR}/.version")"
 
-  # Fetch latest release: token from .env → gh auth → unauthenticated curl
+  # Fetch latest release: token from .env → gh auth → unauthenticated curl.
+  # || true here and on LATEST: with set -e, a failed call, or an answer with
+  # no tag_name for grep, would exit before the check of LATEST prints why.
   GITHUB_TOKEN_VAL=$(grep -E '^GITHUB_TOKEN=' "${PROJECT_DIR}/.env" 2>/dev/null | cut -d '=' -f2- || true)
   if [ -n "${GITHUB_TOKEN_VAL}" ]; then
-    RELEASE_JSON=$(curl -s -H "Authorization: token ${GITHUB_TOKEN_VAL}" "https://api.github.com/repos/${REPO}/releases/latest")
+    RELEASE_JSON=$(curl -fsS -H "Authorization: token ${GITHUB_TOKEN_VAL}" "https://api.github.com/repos/${REPO}/releases/latest" || true)
   elif command -v gh &>/dev/null && gh auth status &>/dev/null 2>&1; then
-    RELEASE_JSON=$(gh api "repos/${REPO}/releases/latest")
+    RELEASE_JSON=$(gh api "repos/${REPO}/releases/latest" || true)
   else
-    RELEASE_JSON=$(curl -s "https://api.github.com/repos/${REPO}/releases/latest")
+    RELEASE_JSON=$(curl -fsS "https://api.github.com/repos/${REPO}/releases/latest" || true)
   fi
-  LATEST=$(echo "${RELEASE_JSON}" | grep -oE '"tag_name"\s*:\s*"[^"]+"' | head -1 | sed 's/.*"v\([^"]*\)".*/\1/')
+  LATEST=$(echo "${RELEASE_JSON}" | grep -oE '"tag_name"\s*:\s*"[^"]+"' | head -1 | sed 's/.*"v\([^"]*\)".*/\1/' || true)
   [ -n "${LATEST}" ] || error "Could not fetch latest version"
 
   if [ "${CURRENT}" = "${LATEST}" ]; then

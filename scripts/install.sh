@@ -20,9 +20,11 @@ echo -e "\n${BOLD}ai-digest installer${NC}\n"
 if [ ! -f ".version" ]; then
   echo "Downloading latest release..."
 
-  RELEASE_URL=$(curl -s "https://api.github.com/repos/${REPO}/releases/latest" \
+  # || true: with set -e, a failed call, or an answer with no archive for grep,
+  # would exit before the check below prints why.
+  RELEASE_URL=$(curl -fsS "https://api.github.com/repos/${REPO}/releases/latest" \
     | grep "browser_download_url.*tar.gz" \
-    | cut -d '"' -f 4)
+    | cut -d '"' -f 4 || true)
 
   if [ -z "${RELEASE_URL}" ]; then
     error "Could not find latest release. Check https://github.com/${REPO}/releases"

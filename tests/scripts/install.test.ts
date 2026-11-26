@@ -47,6 +47,17 @@ describe('install.sh: the Docker image', () => {
   );
 });
 
+describe('install.sh: the download of the latest release', () => {
+  // curl exits 6 when it cannot resolve the host, as with no network.
+  it('stops with its message when the call for the latest release fails', () => {
+    const { status, output, docker } = install('remote', '9.9.9', 'exit 6');
+
+    expect(output).toContain('Could not find latest release');
+    expect(status).toBe(1);
+    expect(docker).toEqual([]);
+  });
+});
+
 // A curl that serves a release of the GitHub API, then its archive.
 const CURL = `case "$*" in
   *api.github.com*) echo '  "browser_download_url": "https://github.com/o/r/releases/download/v9.9.9/ai-digest-v9.9.9.tar.gz"' ;;
@@ -55,8 +66,12 @@ esac`;
 
 // Runs install.sh in an unpacked archive (local) or in an empty folder, where
 // it downloads the archive (remote). version: the .version of the archive,
-// null for none. Each answer is the default.
-function install(mode: 'local' | 'remote', version: string | null) {
+// null for none. curl: the body of its stub. Each answer is the default.
+function install(
+  mode: 'local' | 'remote',
+  version: string | null,
+  curl = CURL,
+) {
   const dir = mkdtempSync(join(tmpdir(), 'ai-digest-'));
   const archive = join(dir, 'archive', 'ai-digest');
   const bin = join(dir, 'bin');
@@ -78,7 +93,7 @@ function install(mode: 'local' | 'remote', version: string | null) {
     join(dir, 'archive'),
     'ai-digest',
   ]);
-  const stubs = { docker: 'echo "$@" >> "$0.calls"', curl: CURL };
+  const stubs = { docker: 'echo "$@" >> "$0.calls"', curl };
   for (const [name, body] of Object.entries(stubs)) {
     writeFileSync(join(bin, name), `#!/bin/sh\n${body}\n`, { mode: 0o755 });
   }
