@@ -114,7 +114,10 @@ which uses `utils/`.
   Step 7 digest template of the `ai-digest` skill, which shapes the files
   that module reads back. `tests/scripts/run.test.ts` tests a script: it
   runs the `sources.yml` merge of the update helper in `scripts/run.sh`
-  with `yq`. It runs in CI, and locally only where `yq` is installed.
+  with the Go `yq`, and checks that the Python `yq` (`pip install yq`)
+  skips the merge. It runs in CI, which installs both. Locally, each case
+  runs only where its `yq` is: the Go one on `PATH`, the Python one by its
+  path in `PYTHON_YQ`.
 
 ## Invariants
 
@@ -175,7 +178,9 @@ new number needs an ADR.
   entry are checked only by `validateStructure`, when `validate_sources`
   runs: a bad field fails one source, not the call.
   `install.sh` writes `delivery.yml` and `.env`; `run.sh update` merges new
-  sources into `sources.yml` with `yq` when `yq` is installed.
+  sources into `sources.yml` with `yq` when the `yq` on `PATH` is the Go
+  one (mikefarah); with any other `yq`, or none, it skips the merge with a
+  warning.
 - **Secrets.** `GITHUB_TOKEN` lives in `.env`, reaches the container through
   `--env-file`, and is read in `src/tools/fetch-github-releases.ts` only.
 - **Logging.** Two files in `logs/`. `logs/run.log` holds process

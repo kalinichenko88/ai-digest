@@ -108,7 +108,8 @@ info()  { echo -e "${GREEN}✓${NC} $1"; }
 warn()  { echo -e "${YELLOW}!${NC} $1"; }
 
 # --- Merge configs with yq ---
-if command -v yq &>/dev/null; then
+# Only the Go yq (mikefarah): the Python yq of pip prints strings in quotes, which breaks the queries
+if [[ "$(yq --version 2>/dev/null)" == *mikefarah* ]]; then
   # sources.yml: append the new sources that the user config does not have
   # rss holds mappings: match them by name
   for name in $(yq ".rss[].name" "${NEW_DIR}/config/sources.yml" 2>/dev/null || true); do
@@ -131,7 +132,7 @@ if command -v yq &>/dev/null; then
 
   # delivery.yml needs no merge — loadDeliveryConfig defaults every key.
 else
-  warn "yq not found — skipping config merge, configs unchanged"
+  warn "no yq of mikefarah/yq on PATH — skipping config merge, configs unchanged"
 fi
 
 # --- Replace non-config files ---

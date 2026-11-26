@@ -7,7 +7,7 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
@@ -16,24 +16,29 @@ import { loadSourcesConfig } from '../../src/config.js';
 const ROOT = join(import.meta.dirname, '..', '..');
 const DEFAULT_SOURCES_PATH = join(ROOT, 'config', 'sources.yml');
 const DEFAULT_SOURCES = readFileSync(DEFAULT_SOURCES_PATH, 'utf8');
+const RELEASED_SOURCES = DEFAULT_SOURCES.replace(
+  '\n\ngithub_releases:',
+  '\n  - name: new-feed\n    url: https://example.com/rss.xml\n    limit: 5\n\ngithub_releases:',
+).replace(
+  '    - tailwindlabs/tailwindcss\n',
+  '    - tailwindlabs/tailwindcss\n    - biomejs/biome\n',
+);
 
-// CI has yq. Without it, run.sh skips the merge, so the test can only run locally with yq.
-const hasYq = spawnSync('yq', ['--version']).status === 0;
+// CI has both yq programs. Locally, each test runs only where its yq is installed.
+const hasGoYq =
+  spawnSync('yq', ['--version'], { encoding: 'utf8' }).stdout?.includes(
+    'mikefarah',
+  ) === true;
+// The Python yq (pip install yq) has the same name, so CI keeps it off PATH and names it here.
+const pythonYq = process.env.PYTHON_YQ ?? '';
 
-describe.skipIf(!hasYq && !process.env.CI)(
-  'run.sh update: merge of sources.yml',
-  () => {
-    it('appends each rss feed and github repo of the release that the install does not have', () => {
-      const released = DEFAULT_SOURCES.replace(
-        '\n\ngithub_releases:',
-        '\n  - name: new-feed\n    url: https://example.com/rss.xml\n    limit: 5\n\ngithub_releases:',
-      ).replace(
-        '    - tailwindlabs/tailwindcss\n',
-        '    - tailwindlabs/tailwindcss\n    - biomejs/biome\n',
-      );
+describe('run.sh update: merge of sources.yml', () => {
+  it.skipIf(!hasGoYq && !process.env.CI)(
+    'appends each rss feed and github repo of the release that the install does not have',
+    () => {
       const installed = loadSourcesConfig(DEFAULT_SOURCES_PATH);
 
-      const { output, merged } = runMerge(released, DEFAULT_SOURCES);
+      const { output, merged } = runMerge(RELEASED_SOURCES, DEFAULT_SOURCES);
 
       expect(merged.github_releases.repos).toEqual([
         ...installed.github_releases.repos,
@@ -47,12 +52,30 @@ describe.skipIf(!hasYq && !process.env.CI)(
         'Added new source: new-feed',
         'Added new source: biomejs/biome',
       ]);
-    });
-  },
-);
+    },
+  );
 
-function runMerge(released: string, installed: string) {
+  it.skipIf(!pythonYq && !process.env.CI)(
+    'skips the merge with a warning when the yq on PATH is the Python yq',
+    () => {
+      expect(pythonYq, 'PYTHON_YQ names the Python yq').not.toBe('');
+
+      const { output, merged } = runMerge(
+        RELEASED_SOURCES,
+        DEFAULT_SOURCES,
+        pythonYq,
+      );
+
+      expect(output).toContain('skipping config merge');
+      expect(merged).toEqual(loadSourcesConfig(DEFAULT_SOURCES_PATH));
+    },
+  );
+});
+
+// yq: the path of a yq program, whose folder goes first on PATH.
+function runMerge(released: string, installed: string, yq?: string) {
   const dir = mkdtempSync(join(tmpdir(), 'ai-digest-'));
+  const path = yq ? `${dirname(yq)}:${process.env.PATH}` : process.env.PATH;
   mkdirSync(join(dir, 'new', 'config'), { recursive: true });
   mkdirSync(join(dir, 'install', 'config'), { recursive: true });
   writeFileSync(join(dir, 'new', 'config', 'sources.yml'), released);
@@ -69,7 +92,7 @@ function runMerge(released: string, installed: string) {
         '0.0.0',
         'owner/repo',
       ],
-      { encoding: 'utf8' },
+      { encoding: 'utf8', env: { ...process.env, PATH: path } },
     );
 
     return {

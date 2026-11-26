@@ -31,6 +31,13 @@ jobs:
       - name: Typecheck
         run: npx tsc --noEmit
 
+      # The runner's yq is the Go one; the run.sh test also needs the Python yq, off PATH
+      - name: Install the Python yq
+        run: |
+          python3 -m venv "$RUNNER_TEMP/python-yq"
+          "$RUNNER_TEMP/python-yq/bin/pip" install --quiet yq==4.4.5
+          echo "PYTHON_YQ=$RUNNER_TEMP/python-yq/bin/yq" >> "$GITHUB_ENV"
+
       - name: Run tests
         run: npm test
 
