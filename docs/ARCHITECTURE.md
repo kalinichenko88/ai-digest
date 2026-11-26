@@ -252,12 +252,12 @@ new number needs an ADR.
   Process death hooks log `uncaughtException`, `unhandledRejection`, each
   signal, and the exit code; a `run.log` with no `exiting code=` line means
   a SIGKILL. `run.sh` exits 2 with no `docker`, 3 with no daemon, and 4
-  when the install has no `.mcp.json` and its download fails. On SIGHUP,
-  SIGINT and SIGTERM it logs `stopped by` the signal in `run.log` and exits
-  129, 130 and 143. One `EXIT` trap of the
-  launcher, set after the update block, stops `claude` and `tail -f` while
-  they run, and shows the notification `ai-digest failed` on each non-zero
-  exit, an ERR exit too.
+  when the install has no `.mcp.json` and its download fails. After the
+  update block, the launcher sets one `EXIT` trap. From then on, on SIGHUP,
+  SIGINT and SIGTERM, it logs `stopped by` the signal in `run.log` and exits
+  129, 130 and 143. On each exit, the trap stops `claude` and `tail -f`
+  while they run, and shows the notification `ai-digest failed` on a
+  non-zero exit, an ERR exit too.
 - **Time.** Local time everywhere: log stamps, digest file names, the
   dedup window. The container gets `TZ` and `/etc/localtime`.
 - **Version.** `.version`, `package.json` and `README.md` carry it; the

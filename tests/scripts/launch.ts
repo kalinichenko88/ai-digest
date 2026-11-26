@@ -76,10 +76,10 @@ function prepare(delivery: string, install: Install) {
   const home = join(dir, 'home');
   const bin = join(dir, 'bin');
   onTestFinished(() => {
-    // A timeout of launch, or a signal test, ends bash only: stop what run.sh
-    // can leave running, its claude and its tail -f, then delete the folder.
+    // A test that fails can leave run.sh, its claude or its tail -f running:
+    // stop them. A run.sh that its trap still ends can write logs/ meanwhile.
     spawnSync('pkill', ['-f', dir]);
-    rmSync(dir, { recursive: true });
+    rmSync(dir, { recursive: true, maxRetries: 5 });
   });
   mkdirSync(join(dir, 'config'));
   mkdirSync(bin);
