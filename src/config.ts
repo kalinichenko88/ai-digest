@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { parse } from 'yaml';
 
 import { log } from './logger.js';
-import type { DeliveryConfig, SourcesConfig } from './types.js';
+import type { DeliveryConfig, RssSource, SourcesConfig } from './types.js';
 
 export function loadSourcesConfig(path: string): SourcesConfig {
   log('config', `Loading sources from ${path}`);
@@ -17,6 +17,9 @@ export function loadSourcesConfig(path: string): SourcesConfig {
   // Only the shape is checked here: a bad field fails one source, not the
   // whole call, and validateStructure reports it.
   const config = parsed as SourcesConfig;
+  for (const source of config.rss) {
+    fillTelegram(source);
+  }
   log(
     'config',
     `Sources: ${config.rss.length} RSS, ${config.github_releases.repos.length} GitHub repos`,
@@ -55,7 +58,9 @@ function shapeErrors(parsed: unknown): string[] {
   } else {
     for (const [i, src] of rss.entries()) {
       if (!isMapping(src)) {
-        errors.push(`rss[${i}]: must be a mapping with name, url and limit`);
+        errors.push(
+          `rss[${i}]: must be a mapping with name, url and limit, or with telegram`,
+        );
       }
     }
   }
@@ -72,3 +77,19 @@ function shapeErrors(parsed: unknown): string[] {
 function isMapping(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
+
+// An rss entry `telegram: <channel>` reads that public channel through the
+// bridge (ADR 0003). An explicit name or limit wins.
+function fillTelegram(source: RssSource): void {
+  if (typeof source.telegram !== 'string') {
+    return;
+  }
+
+  source.url = TELEGRAM_FEED + encodeURIComponent(source.telegram);
+  source.name ??= source.telegram;
+  source.limit ??= 20;
+}
+
+// ponytail: the public RSS-Bridge instance; a setting for its address when the person self-hosts it
+const TELEGRAM_FEED =
+  'https://rss-bridge.org/bridge01/?action=display&bridge=TelegramBridge&format=Atom&username=';
