@@ -18,23 +18,30 @@ does not have yet (step 4).
 1. Ask: "What type of source? (rss / github_release / telegram)"
 
 2. Based on type, ask for required info:
-   - **rss**: Ask only for the URL. A URL on `t.me` or `telegram.me` is a
-     Telegram channel, not a feed: from here on, the type is `telegram`, in
-     every step. Apply the whole telegram bullet below to that URL, its stop
-     first, and do not ask for the link again. For a feed, use limit 10 by
-     default.
-   - **github_release**: Ask for repo in `owner/name` format (e.g. "facebook/react")
+   - **rss**: Ask only for the URL. A URL on `t.me` or `telegram.me`, or a
+     name that starts with `@`, is a Telegram channel, not a feed: from here
+     on, the type is `telegram`, in every step. Apply the whole telegram
+     bullet below to it, its stop first, and do not ask for the link again.
+     For a feed, use limit 10 by default.
+   - **github_release**: Ask for repo in `owner/name` format (e.g.
+     "facebook/react"). From a `github.com` link, take the first two parts of
+     its path.
    - **telegram**: Ask for the link or the username (`@name`) of a public
-     channel. First, on `t.me` or `telegram.me`, with or without `www.`, a
-     path that starts with `+`, `joinchat/`, `c/` or `addlist/` is not a
-     public channel: say that only public channels can be read, write
-     nothing, and stop. Else the slug is the first part of the path after
-     `t.me/` or `telegram.me/`, or, when the path starts with `s/` (a preview
-     link), the part right after that `s/`. Remove the scheme, `www.` and
-     `@`, drop everything after the slug (`/123`, `?…`, `#…`), and write it
-     in lower case: `@durov`, `durov`, `t.me/durov` and
-     `https://t.me/s/Durov/123?single` all give `durov`. Write the bare slug:
-     a value that starts with `@` breaks the YAML of the whole file.
+     channel. Then, in this order:
+     1. On `t.me` or `telegram.me`, with or without `www.`, a path that
+        starts with `+`, `joinchat/`, `c/` or `addlist/` is not a public
+        channel: say that only public channels can be read, write nothing,
+        and stop.
+     2. For a link, the slug is the first part of the path after `t.me/` or
+        `telegram.me/`, or, when the path starts with `s/` (a preview link),
+        the part right after that `s/`. For a username, it is the username.
+     3. Remove the scheme, `www.` and `@`, drop everything after the slug
+        (`/123`, `?…`, `#…`), and write it in lower case.
+     4. Check the result against the examples: `@durov`, `durov`,
+        `t.me/durov` and `https://t.me/s/Durov/123?single` all give `durov`.
+
+     Write the bare slug: a value that starts with `@` breaks the YAML of the
+     whole file.
 
 3. Read current `config/sources.yml`
 
@@ -64,8 +71,9 @@ does not have yet (step 4).
      new repo quotes it whole, as `"owner/name"`.
    - Its `reachability` item has `status: failed`: show its `detail`, and ask
      whether to keep it. If not, remove the new entry and stop. For a Telegram
-     channel, `HTTP 500` usually means that the channel does not exist or is
-     not public.
+     channel, `HTTP 500` usually means that the channel does not exist, or
+     that the name is not a public channel: a group, a bot or a person has no
+     feed.
    - `structure.errors` holds errors of other sources: they stop the next
      digest run. Say how many errors there are, in one line, and that
      `/validate-sources` shows them.
