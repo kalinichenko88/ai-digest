@@ -8,28 +8,31 @@ allowed-tools: Read, Edit, mcp__ai-digest-mcp__validate_sources
 # Add Source
 
 Help the user add a new source to `config/sources.yml`. The `validate_sources`
-MCP tool checks the new entry. This skill checks nothing itself: it only
-takes the slug from a Telegram link and stops on a link that is not a public
-channel (step 2), and picks a name that the file does not have yet (step 4).
+MCP tool checks the new entry. This skill repeats no check of
+`validate_sources`. It takes the slug from a Telegram link, stops on an
+invite, folder or private-post link (step 2), and picks a name that the file
+does not have yet (step 4).
 
 ## Flow
 
 1. Ask: "What type of source? (rss / github_release / telegram)"
 
 2. Based on type, ask for required info:
-   - **rss**: Ask only for the URL. Use limit 10 by default. A URL on `t.me`
-     or `telegram.me` is a Telegram channel, not a feed: from here on, the
-     type is `telegram`, in every step. Take the slug from that URL by the
-     telegram rule below, and do not ask again.
+   - **rss**: Ask only for the URL. A URL on `t.me` or `telegram.me` is a
+     Telegram channel, not a feed: from here on, the type is `telegram`, in
+     every step. Apply the whole telegram bullet below to that URL, its stop
+     first, and do not ask for the link again. For a feed, use limit 10 by
+     default.
    - **github_release**: Ask for repo in `owner/name` format (e.g. "facebook/react")
    - **telegram**: Ask for the link or the username (`@name`) of a public
-     channel. First, on `t.me` or `telegram.me`, a path that starts with `+`,
-     `joinchat/`, `c/` or `addlist/` is not a public channel: say that only
-     public channels can be read, write nothing, and stop. Else the slug is
-     the first part of the path after `t.me/` or `telegram.me/`, or the part
-     after `s/` for a preview link. Remove the scheme, `www.` and `@`, drop
-     everything after the slug (`/123`, `?…`, `#…`), and write it in lower
-     case: `@durov`, `durov`, `t.me/durov` and
+     channel. First, on `t.me` or `telegram.me`, with or without `www.`, a
+     path that starts with `+`, `joinchat/`, `c/` or `addlist/` is not a
+     public channel: say that only public channels can be read, write
+     nothing, and stop. Else the slug is the first part of the path after
+     `t.me/` or `telegram.me/`, or, when the path starts with `s/` (a preview
+     link), the part right after that `s/`. Remove the scheme, `www.` and
+     `@`, drop everything after the slug (`/123`, `?…`, `#…`), and write it
+     in lower case: `@durov`, `durov`, `t.me/durov` and
      `https://t.me/s/Durov/123?single` all give `durov`. Write the bare slug:
      a value that starts with `@` breaks the YAML of the whole file.
 
@@ -38,11 +41,11 @@ channel (step 2), and picks a name that the file does not have yet (step 4).
 4. Append the new entry to the correct section, and write the file. The name
    of an entry in the `rss` array is its `name`, or, when it has none, its
    `telegram` value.
-   - rss → append to `rss` array. Generate the name yourself — derive a short lowercase identifier from the domain/path (e.g. `https://react.dev/blog/rss.xml` → `react-blog`, `https://dev.to/feed` → `devto`). When an `rss` entry already has that name, add `-2`, `-3` and so on, until no entry has it.
+   - rss → append to `rss` array. Generate the name yourself — derive a short lowercase identifier from the domain/path (e.g. `https://react.dev/blog/rss.xml` → `react-blog`, `https://dev.to/feed` → `devto`). When an entry in the `rss` array already has that name, add `-2`, `-3` and so on, until no entry has it.
    - telegram → append `- telegram: <slug>` to `rss` array. The server fills
-     its URL, its name (the slug) and its limit (20). When an `rss` entry
-     already has the name `<slug>`, also write `name: <slug>-2` (`-3` and so
-     on, until no entry has it).
+     its URL, its name (the slug) and its limit (20). When an entry in the
+     `rss` array already has the name `<slug>`, also write `name: <slug>-2`
+     (`-3` and so on, until no entry has it).
    - github_release → append to `github_releases.repos` array
 
 5. Call the `validate_sources` MCP tool (no arguments). It checks the whole
