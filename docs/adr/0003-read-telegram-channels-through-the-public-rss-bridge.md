@@ -75,10 +75,13 @@ Bad:
 - The bridge gives only the 20 newest posts of a channel, and its cache can
   give a new post late.
 - Each run makes 2 requests a channel, one from `validate_sources` and one
-  from `fetch_all_rss`, against the limit of 10k a day.
+  from `fetch_all_rss` (3 when the bridge fails the HEAD request of
+  `validate_sources`), against the limit of 10k a day.
 - Three readers take the raw file: `scripts/apply-update.sh`, Step 1 of the
   `ai-digest` skill and `/add-source`. `apply-update.sh` merges `rss` entries
-  by `name`, so a shipped `rss` entry must keep its `name`.
+  by `name`, so the shipped `sources.yml` holds no `telegram:` entry: the
+  merge does not see a `telegram:` entry with no `name`, in the shipped file
+  or in the person's.
 - An installed `sources.yml` with `telegram:` entries needs this expansion:
   with it removed, or on a release before it, each such entry gives three
   structure errors and stops the run.

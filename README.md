@@ -79,7 +79,8 @@ Edit `config/sources.yml` to customize your news sources.
 Or use `/add-source` in Claude Code to add sources interactively.
 
 A public Telegram channel is an `rss` entry with the channel's slug, the
-`<slug>` of `t.me/<slug>`, with no `@` and no link:
+`<slug>` of `t.me/<slug>`, with no `@` and no link (with `/add-source`, answer
+`telegram`):
 
 ```yaml
 rss:
@@ -90,7 +91,9 @@ The server reads the channel through the public
 [RSS-Bridge](https://rss-bridge.org/bridge01/) instance, which gives the 20
 newest posts. Its terms: non-commercial use only, at most 10k requests a day.
 The instance sees which channels you read. You can set `name` and `limit` as
-for any RSS feed; set `name` when the slug is the name of another source.
+for any RSS feed, but a `limit` over 20 gives no more posts; set `name` when
+the slug is the name of another source. `telegram` sets the URL, so a `url` in
+the same entry is not read.
 
 ### 4. Configure delivery
 

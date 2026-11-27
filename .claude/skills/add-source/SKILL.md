@@ -17,24 +17,31 @@ does not have yet (step 4).
 1. Ask: "What type of source? (rss / github_release / telegram)"
 
 2. Based on type, ask for required info:
-   - **rss**: Ask only for the URL. Use limit 10 by default.
+   - **rss**: Ask only for the URL. Use limit 10 by default. A URL on `t.me`
+     or `telegram.me` is a Telegram channel, not a feed: use the telegram
+     rule.
    - **github_release**: Ask for repo in `owner/name` format (e.g. "facebook/react")
-   - **telegram**: Ask for the link or the name of a public channel. Take its
-     slug: `<channel>` in `https://t.me/<channel>`, `https://t.me/s/<channel>`,
-     `t.me/<channel>` or `@<channel>`. Write the bare slug, with no `@` and no
-     link: a value that starts with `@` breaks the YAML of the whole file.
+   - **telegram**: Ask for the link or the username (`@name`) of a public
+     channel. Its slug is the first part of the path after `t.me/` or
+     `telegram.me/`, or after `t.me/s/` for a preview link. Remove the scheme,
+     `www.` and `@`, drop everything after the slug (`/123`, `?…`, `#…`), and
+     write it in lower case: `@durov`, `durov`, `t.me/durov` and
+     `https://t.me/s/Durov/123?single` all give `durov`. Write the bare slug:
+     a value that starts with `@` breaks the YAML of the whole file. A link
+     `t.me/+…` or `t.me/joinchat/…` is an invite to a private channel: say
+     that only public channels can be read, write nothing, and stop.
 
 3. Read current `config/sources.yml`
 
-4. Append the new entry to the correct section, and write the file:
+4. Append the new entry to the correct section, and write the file. The name
+   of an `rss` entry is its `name`; a `telegram` entry with no `name` has its
+   `telegram` value as its name.
    - rss → append to `rss` array. Generate the name yourself — derive a short lowercase identifier from the domain/path (e.g. `https://react.dev/blog/rss.xml` → `react-blog`, `https://dev.to/feed` → `devto`). When an `rss` entry already has that name, add `-2`, `-3` and so on, until no entry has it.
    - telegram → append `- telegram: <slug>` to `rss` array. The server fills
      its URL, its name (the slug) and its limit (20). When an `rss` entry
      already has the name `<slug>`, also write `name: <slug>-2` (`-3` and so
      on, until no entry has it).
    - github_release → append to `github_releases.repos` array
-
-   A `telegram` entry with no `name` has its slug as its name.
 
 5. Call the `validate_sources` MCP tool (no arguments). It checks the whole
    file: duplicates (an RSS source by name and by URL, a GitHub source by
