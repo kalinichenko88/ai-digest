@@ -235,13 +235,19 @@ new number needs an ADR.
   `src/config.ts` parses them. `scripts/run.sh` reads `output_path` from
   `delivery.yml` with `sed`, with the same default `~/digests`, for the
   mount of the digest folder. `delivery.yml` gets a default for every key in
-  `src/config.ts`, so `run.sh update` does not merge it. `sources.yml` has
-  no defaults. `loadSourcesConfig` checks its shape at load: `rss` is a list
-  of mappings and `github_releases.repos` is a list. A wrong shape throws one
-  error that names each wrong part, so every tool fails with that message,
-  and `validate_sources` returns it as a structure error. The fields of each
+  `src/config.ts`, so `run.sh update` does not merge it. `loadSourcesConfig`
+  checks the shape of `sources.yml` at load: `rss` is a list of mappings and
+  `github_releases.repos` is a list. A wrong shape throws one error that
+  names each wrong part, so every tool fails with that message, and
+  `validate_sources` returns it as a structure error. The fields of each
   entry are checked only by `validateStructure`, when `validate_sources`
-  runs: a bad field fails one source, not the call.
+  runs: a bad field fails one source, not the call. After the shape check,
+  an `rss` entry with `telegram: <channel>` gets its `url`, the feed of the
+  public RSS-Bridge instance, and its `name` (the slug) and `limit` (20)
+  when it has none (ADR 0003). No other field and no section of
+  `sources.yml` gets a default. Three readers take the raw file, not the
+  loaded config: `scripts/apply-update.sh`, Step 1 of
+  `.claude/skills/ai-digest/SKILL.md`, and `/add-source`.
   `install.sh` writes `delivery.yml` and `.env`; `run.sh update` merges new
   sources into `sources.yml` with `yq` when the `yq` on `PATH` is the Go
   one (mikefarah); with any other `yq`, or none, it skips the merge with a
@@ -286,3 +292,4 @@ commit.
 
 - [0001 Check the shape of sources.yml at load, by hand](adr/0001-check-sources-yml-shape-at-load.md)
 - [0002 Run the update helper of the new release](adr/0002-run-the-update-helper-of-the-new-release.md)
+- [0003 Read a Telegram channel through the public RSS-Bridge](adr/0003-read-telegram-channels-through-the-public-rss-bridge.md)

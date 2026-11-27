@@ -6,6 +6,8 @@ import { describe, expect, it } from 'vitest';
 import { loadDeliveryConfig, loadSourcesConfig } from '../src/config.js';
 
 const TEST_DIR = join(import.meta.dirname, 'fixtures', 'config');
+const FEED =
+  'https://rss-bridge.org/bridge01/?action=display&bridge=TelegramBridge&format=Atom&username=';
 
 describe('loadSourcesConfig', () => {
   it('parses sources.yml correctly', () => {
@@ -34,6 +36,37 @@ github_releases:
 
   it('throws on missing file', () => {
     expect(() => loadSourcesConfig('/nonexistent/path.yml')).toThrow();
+  });
+
+  it('fills the url, name and limit of a telegram entry', () => {
+    mkdirSync(TEST_DIR, { recursive: true });
+    writeFileSync(
+      join(TEST_DIR, 'sources.yml'),
+      `rss:
+  - telegram: addmeto
+  - telegram: other
+    name: tech
+    limit: 5
+    url: https://example.com/feed.xml
+  - telegram: 12345
+github_releases:
+  repos: []
+`,
+    );
+
+    const config = loadSourcesConfig(join(TEST_DIR, 'sources.yml'));
+    expect(config.rss).toEqual([
+      {
+        telegram: 'addmeto',
+        name: 'addmeto',
+        limit: 20,
+        url: `${FEED}addmeto`,
+      },
+      { telegram: 'other', name: 'tech', limit: 5, url: `${FEED}other` },
+      { telegram: 12345 },
+    ]);
+
+    rmSync(TEST_DIR, { recursive: true });
   });
 
   it.each([

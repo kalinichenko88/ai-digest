@@ -16,6 +16,7 @@ export type RssSource = {
   name: string;
   url: string;
   limit: number;
+  telegram?: string;
 };
 
 export type SourcesConfig = {

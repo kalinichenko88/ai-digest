@@ -1,6 +1,6 @@
 ---
 name: add-source
-description: Add a new news source (RSS or GitHub release) to ai-digest config
+description: Add a new news source (RSS feed, Telegram channel or GitHub release) to ai-digest config
 model: haiku
 allowed-tools: Read, Edit, mcp__ai-digest-mcp__validate_sources
 ---
@@ -8,21 +8,51 @@ allowed-tools: Read, Edit, mcp__ai-digest-mcp__validate_sources
 # Add Source
 
 Help the user add a new source to `config/sources.yml`. The `validate_sources`
-MCP tool checks the new entry. This skill checks nothing itself: it only
-picks an RSS name that the file does not have yet (step 4).
+MCP tool checks the new entry. This skill repeats no check of
+`validate_sources`. It takes the slug from a Telegram link, stops on an
+invite, folder or private-post link (step 2), and picks a name that the file
+does not have yet (step 4).
 
 ## Flow
 
-1. Ask: "What type of source? (rss / github_release)"
+1. Ask: "What type of source? (rss / github_release / telegram)"
 
 2. Based on type, ask for required info:
-   - **rss**: Ask only for the URL. Use limit 10 by default.
-   - **github_release**: Ask for repo in `owner/name` format (e.g. "facebook/react")
+   - **rss**: Ask only for the URL. A URL on `t.me` or `telegram.me`, or a
+     name that starts with `@`, is a Telegram channel, not a feed: from here
+     on, the type is `telegram`, in every step. Apply the whole telegram
+     bullet below to it, its stop first, and do not ask for the link again.
+     For a feed, use limit 10 by default.
+   - **github_release**: Ask for repo in `owner/name` format (e.g.
+     "facebook/react"). From a `github.com` link, take the first two parts of
+     its path.
+   - **telegram**: Ask for the link or the username (`@name`) of a public
+     channel. Then, in this order:
+     1. On `t.me` or `telegram.me`, with or without `www.`, a path that
+        starts with `+`, `joinchat/`, `c/` or `addlist/` is not a public
+        channel: say that only public channels can be read, write nothing,
+        and stop.
+     2. For a link, the slug is the first part of the path after `t.me/` or
+        `telegram.me/`, or, when the path starts with `s/` (a preview link),
+        the part right after that `s/`. For a username, it is the username.
+     3. Remove the scheme, `www.` and `@`, drop everything after the slug
+        (`/123`, `?…`, `#…`), and write it in lower case.
+     4. Check the result against the examples: `@durov`, `durov`,
+        `t.me/durov` and `https://t.me/s/Durov/123?single` all give `durov`.
+
+     Write the bare slug: a value that starts with `@` breaks the YAML of the
+     whole file.
 
 3. Read current `config/sources.yml`
 
-4. Append the new entry to the correct section, and write the file:
-   - rss → append to `rss` array. Generate the name yourself — derive a short lowercase identifier from the domain/path (e.g. `https://react.dev/blog/rss.xml` → `react-blog`, `https://dev.to/feed` → `devto`). When an `rss` entry already has that name, add `-2`, `-3` and so on, until no entry has it.
+4. Append the new entry to the correct section, and write the file. The name
+   of an entry in the `rss` array is its `name`, or, when it has none, its
+   `telegram` value.
+   - rss → append to `rss` array. Generate the name yourself — derive a short lowercase identifier from the domain/path (e.g. `https://react.dev/blog/rss.xml` → `react-blog`, `https://dev.to/feed` → `devto`). When an entry in the `rss` array already has that name, add `-2`, `-3` and so on, until no entry has it.
+   - telegram → append `- telegram: <slug>` to `rss` array. The server fills
+     its URL, its name (the slug) and its limit (20). When an entry in the
+     `rss` array already has the name `<slug>`, also write `name: <slug>-2`
+     (`-3` and so on, until no entry has it).
    - github_release → append to `github_releases.repos` array
 
 5. Call the `validate_sources` MCP tool (no arguments). It checks the whole
@@ -36,15 +66,19 @@ picks an RSS name that the file does not have yet (step 4).
    - `reachability` is empty: the file did not load. Remove the new entry,
      show the error, and stop.
    - `structure.errors` holds an error of the new entry: remove the new entry,
-     show the error, and stop. An error of a new RSS entry starts with
+     show the error, and stop. An error of a new RSS or Telegram entry starts with
      `rss[N]`, where N is the number of `rss` entries before you added it. An error of a
      new repo quotes it whole, as `"owner/name"`.
    - Its `reachability` item has `status: failed`: show its `detail`, and ask
-     whether to keep it. If not, remove the new entry and stop.
+     whether to keep it. If not, remove the new entry and stop. For a Telegram
+     channel, `HTTP 500` usually means that the channel does not exist, or
+     that the name is not a public channel: a group, a bot or a person has no
+     feed.
    - `structure.errors` holds errors of other sources: they stop the next
      digest run. Say how many errors there are, in one line, and that
      `/validate-sources` shows them.
 
-7. Confirm: "Added <name/repo> to <section>." When `structure.valid` is true
+7. Confirm: "Added <name/repo> to <section>.", or for a Telegram channel
+   "Added Telegram channel <slug> to rss." When `structure.valid` is true
    and its `reachability` item is `ok`, add: "It will be included in the next
    digest run."
