@@ -79,9 +79,10 @@ Bad:
   `validate_sources`), against the limit of 10k a day.
 - Three readers take the raw file: `scripts/apply-update.sh`, Step 1 of the
   `ai-digest` skill and `/add-source`. `apply-update.sh` merges `rss` entries
-  by `name`, so the shipped `sources.yml` holds no `telegram:` entry: the
-  merge does not see a `telegram:` entry with no `name`, in the shipped file
-  or in the person's.
+  by `name`, so the shipped `sources.yml` holds no `telegram:` entry. The
+  merge does not handle a shipped entry with no `name`, and it does not see
+  an entry of the person with no `name`: a shipped entry of the same channel
+  would be added as a duplicate, and the duplicate name stops the run.
 - An installed `sources.yml` with `telegram:` entries needs this expansion:
   with it removed, or on a release before it, each such entry gives three
   structure errors and stops the run.
