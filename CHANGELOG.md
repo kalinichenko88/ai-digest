@@ -5,6 +5,50 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.2.0] - 2026-11-27
+
+### Added
+
+- Public Telegram channels as sources: an `rss` entry with `telegram: <slug>` reads the
+  channel through the public RSS-Bridge feed, and `/add-source` takes the slug from a
+  `t.me` link (ADR 0003)
+
+### Fixed
+
+- Deduplication sees the previous digests: the digest folder is mounted read-only into
+  the MCP container
+- The MCP server is defined in `.mcp.json`, where Claude Code reads it. The archive
+  ships the file, and `run.sh` downloads it once for an install that has none
+- `run.sh update` merges the new `github_releases` repos into `sources.yml`, and skips
+  the merge with a warning when the `yq` on `PATH` is not the Go `yq`
+- `run.sh update` and `install.sh` print the error when the call for the latest
+  release fails
+- `install.sh` pulls the image of the installed release and tags it `latest`
+- `run.sh update` renames the new `run.sh` over the installed one, so a digest run in
+  progress keeps its file
+- A failed Claude run no longer stops `run.sh` at `wait`
+- `run.sh` stops `claude` and `tail -f` on each exit, notifies each failed exit, and
+  logs a HUP, INT or TERM signal (exit codes 129, 130 and 143)
+
+### Changed
+
+- `run.sh update` runs `scripts/apply-update.sh` from the new release, and pulls the new
+  image before it changes a file (ADR 0002)
+- `/add-source` checks the new entry with `validate_sources`, which now reports a
+  duplicate RSS URL
+- Object shapes are declared with `type`, not `interface`, and Biome enforces it
+
+### Docs
+
+- `/release` moved out of the shipped `CLAUDE.md`
+
+### Improved
+
+- Docker base image moved to `node:26.13.1-alpine`
+- CI typechecks `tests/` with `src/` and builds from `tsconfig.build.json`
+- CI builds the Docker image on every push and pull request, and pushes it only on a tag
+- The shell stubs of `tests/scripts/` come from one `writeStubs` helper
+
 ## [0.1.8] - 2026-10-28
 
 ### Fixed
@@ -144,6 +188,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Configure import ordering and add `node:` prefix
 - Bump GitHub Actions to Node.js 22+ compatible versions
 
+[0.2.0]: https://github.com/kalinichenko88/ai-digest/compare/v0.1.8...v0.2.0
 [0.1.8]: https://github.com/kalinichenko88/ai-digest/compare/v0.1.7...v0.1.8
 [0.1.7]: https://github.com/kalinichenko88/ai-digest/compare/v0.1.6...v0.1.7
 [0.1.6]: https://github.com/kalinichenko88/ai-digest/compare/v0.1.5...v0.1.6
