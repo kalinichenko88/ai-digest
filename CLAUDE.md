@@ -22,5 +22,5 @@ Crypto, Web3, blockchain, NFTs
 ## Claude Code Skills
 
 - `/ai-digest` — Run the full daily digest pipeline (validate → collect → deduplicate → summarize → deliver)
-- `/add-source` — Add a new source (RSS or GitHub release) to `config/sources.yml` interactively
+- `/add-source` — Add a new source (RSS, Telegram channel or GitHub release) to `config/sources.yml` interactively
 - `/validate-sources` — Validate `config/sources.yml` structure and check all URLs are reachable
